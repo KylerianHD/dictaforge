@@ -1,0 +1,8 @@
+/target
+Cargo.lock.orig
+*.gguf
+*.onnx
+
+# AI working files stay out of public history
+CLAUDE.md
+.claude/
