@@ -23,8 +23,9 @@ jobs:
         include:
           - name: ubuntu-x86_64
             os: ubuntu-24.04
-          - name: ubuntu-aarch64
-            os: ubuntu-24.04-arm
+          # free arm runners require a public repo; re-enable if this goes public
+          # - name: ubuntu-aarch64
+          #   os: ubuntu-24.04-arm
           - name: arch
             os: ubuntu-24.04
             container: archlinux:latest

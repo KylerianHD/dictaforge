@@ -1,5 +1,5 @@
 [package]
-name = "openflow"
+name = "dictaforge"
 description = "Settings GUI, history, and first-run wizard"
 version.workspace = true
 edition.workspace = true

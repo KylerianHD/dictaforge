@@ -1,5 +1,5 @@
 [package]
-name = "openflowd"
+name = "dictaforged"
 description = "Dictation daemon: hotkeys, audio, transcription, text injection"
 version.workspace = true
 edition.workspace = true

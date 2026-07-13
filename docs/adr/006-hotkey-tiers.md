@@ -11,7 +11,7 @@ No portable global-hotkey API exists on Linux. Wayland compositors gate input; t
 Auto-detected tiers:
 
 1. XDG Desktop Portal GlobalShortcuts (ashpd) on KDE Plasma and GNOME Wayland.
-2. Generated/documented compositor keybind snippets calling `openflow-cli` (Hyprland, Sway, river and friends).
+2. Generated/documented compositor keybind snippets calling `dictaforge-cli` (Hyprland, Sway, river and friends).
 3. evdev listener as universal fallback: requires input-group membership, matches only the configured chord, never logs anything else. The privacy explanation ships in the first-run wizard, and push-to-talk (key-release detection) needs this tier or tier 1.
 4. XGrabKey on X11 sessions.
 

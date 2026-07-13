@@ -1,12 +1,11 @@
 # Roadmap
 
-OpenFlow is a working name. It collides with the ONF OpenFlow SDN protocol; rename decision is tracked in TODO.md.
 
 ## M0: Foundations
 - [x] Git repo (main + dev), license (GPL-3.0-or-later), .gitignore
 - [x] ADR index (docs/adr/README.md)
 - [x] Injection backend decision table (docs/research/injection-backends.md)
-- [x] Cargo workspace skeleton: openflowd, openflow, openflow-cli (crates/* added when the first shared code appears)
+- [x] Cargo workspace skeleton: dictaforged, dictaforge, dictaforge-cli (crates/* added when the first shared code appears)
 - [x] CI: fmt check, clippy -D warnings, tests, cargo-deny, no-network-crates check (byok feature gate)
 - [x] Repo hygiene: README, PRIVACY.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, issue/PR templates
 - [x] Research notes: wtype/dotool/ydotool/kdotool techniques, whisper.cpp API (docs/research/)
@@ -47,6 +46,6 @@ OpenFlow is a working name. It collides with the ONF OpenFlow SDN protocol; rena
 ## M5: Custom AI groundwork (post-1.0)
 - [ ] Versioned model contract (trait + on-disk manifest), self-hostable model registry support
 - [ ] docs/research/custom-ai-feasibility.md and docs/adr/NNN-custom-ai.md
-- [ ] If the study says go: scaffold the separate openflow-ai repo, starting with the fine-tuned cleanup model
+- [ ] If the study says go: scaffold the separate dictaforge-ai repo, starting with the fine-tuned cleanup model
 
 After each milestone: run the QA matrix, update these checkboxes, cut a tag from main.

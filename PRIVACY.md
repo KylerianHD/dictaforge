@@ -10,6 +10,6 @@ Short version: your voice and your text stay on your machine.
 - The microphone opens only while you dictate: on your hotkey, or on the wake word if you explicitly enable it (off by default).
 - Dictation history is stored locally, can be encrypted at rest, and can be turned off entirely. Deleting an entry deletes it.
 - The evdev hotkey fallback reads input devices only to match your configured shortcut. It never logs or stores keystrokes.
-- The clipboard injection fallback is opt-in because clipboard managers may keep history; OpenFlow warns you before enabling it.
+- The clipboard injection fallback is opt-in because clipboard managers may keep history; DictaForge warns you before enabling it.
 
 Questions or doubts: open an issue. Claims here are meant to be verifiable from the source.

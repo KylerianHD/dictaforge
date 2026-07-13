@@ -8,9 +8,9 @@ Dictation must keep working when no window is open, and power users want to bind
 
 ## Decision
 
-- `openflowd`: headless daemon owning hotkeys, audio, VAD, STT, cleanup, and injection. Exposes a D-Bus service on the session bus (via zbus).
-- `openflow`: GUI for settings, history, and the first-run wizard. A pure D-Bus client; crashing it never interrupts dictation.
-- `openflow-cli`: thin D-Bus client for scripting (start/stop/toggle/type/status), which is also how compositor-native keybinds integrate.
+- `dictaforged`: headless daemon owning hotkeys, audio, VAD, STT, cleanup, and injection. Exposes a D-Bus service on the session bus (via zbus).
+- `dictaforge`: GUI for settings, history, and the first-run wizard. A pure D-Bus client; crashing it never interrupts dictation.
+- `dictaforge-cli`: thin D-Bus client for scripting (start/stop/toggle/type/status), which is also how compositor-native keybinds integrate.
 
 ## Consequences
 

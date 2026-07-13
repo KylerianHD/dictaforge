@@ -13,5 +13,5 @@ An `Injector` trait with runtime capability probing, in this order: wlroots virt
 ## Consequences
 
 - Every backend must pass the same round-trip test suite across 20+ layouts; ydotool's QWERTZ/AZERTY garbage is a named regression test.
-- The probe result is cached, user-overridable in config, and reported by `openflow-cli status`.
+- The probe result is cached, user-overridable in config, and reported by `dictaforge-cli status`.
 - The uinput path needs a udev rule or input-group membership; the first-run wizard owns that (guided, polkit-assisted where possible).

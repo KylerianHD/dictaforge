@@ -1,6 +1,6 @@
 # Text injection backend decision table
 
-Every backend must produce correct text regardless of keyboard layout (QWERTZ, AZERTY, Dvorak, Colemak, bepo, non-Latin, dead keys, compose). Backends are probed at startup and per session, the working one is cached, user override lives in config, and `openflow-cli status` reports the active choice.
+Every backend must produce correct text regardless of keyboard layout (QWERTZ, AZERTY, Dvorak, Colemak, bepo, non-Latin, dead keys, compose). Backends are probed at startup and per session, the working one is cached, user override lives in config, and `dictaforge-cli status` reports the active choice.
 
 ## Decision table per environment
 

@@ -1,10 +1,9 @@
-# OpenFlow
+# DictaForge
 
 Privacy-first voice dictation for Linux. Hold a key, speak, and the text lands in whatever field has focus: terminal, browser, IDE, chat. Works across Wayland and X11, on every major desktop, on any keyboard layout.
 
 **Status: pre-alpha.** Nothing usable yet. The plan lives in [ROADMAP.md](ROADMAP.md).
 
-About the name: OpenFlow is a working title (the SDN protocol got there first) and will change before the first release.
 
 ## Goals
 

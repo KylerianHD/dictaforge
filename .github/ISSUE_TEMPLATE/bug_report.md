@@ -12,9 +12,9 @@ labels: bug
 - Distro:
 - Desktop / compositor (and Wayland or X11):
 - Keyboard layout(s):
-- OpenFlow version (`openflow-cli status` output if it runs):
+- DictaForge version (`dictaforge-cli status` output if it runs):
 
 **Steps to reproduce**
 
 **Logs**
-Output of `journalctl --user -u openflowd` around the time of the bug, if relevant.
+Output of `journalctl --user -u dictaforged` around the time of the bug, if relevant.

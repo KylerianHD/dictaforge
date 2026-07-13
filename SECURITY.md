@@ -1,6 +1,6 @@
 # Security policy
 
-OpenFlow runs a daemon with access to your microphone and input devices, so security reports are taken seriously.
+DictaForge runs a daemon with access to your microphone and input devices, so security reports are taken seriously.
 
 ## Reporting a vulnerability
 
