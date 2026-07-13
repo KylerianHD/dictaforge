@@ -4,7 +4,6 @@ Live task list. ROADMAP.md holds the milestone view.
 
 ## Next step (M1, waiting for go)
 - [ ] M1 Task 1: reverse keymap core (plan: .claude/plans/2026-07-13-m1-vertical-slice.md, local only)
-- [ ] M1 Task 0 (rename + GitHub remote) slots in as soon as the name is settled
 
 ## Decided
 - [x] Name: DictaForge (2026-07-13). Verified clean: crates.io free, AUR free, no web presence, one dormant unrelated 0-star GitHub repo. VoxForge rejected (voxforge.org, same-domain FOSS project), VoxSmith rejected (crates.io taken by active voxel crate, domains gone). Binaries: dictaforge (GUI), dictaforged (daemon), dictaforge-cli. Rename lands as M1 Task 0.
@@ -15,6 +14,7 @@ Live task list. ROADMAP.md holds the milestone view.
 - [ ] Replace the short code of conduct with Contributor Covenant if the community grows
 
 ## Done
+- [x] 2026-07-13: M1 Task 0: renamed to DictaForge repo-wide, private GitHub repo created (KylerianHD/dictaforge, dev default), first CI run green (6 jobs), PR #1 squash-merged; branch rulesets added (no force push/delete on main+dev, dev requires green CI, so all dev changes go through PRs from now on)
 - [x] 2026-07-13: M0 exit review (ponytail-audit: 2 micro-cuts applied, otherwise lean; no M0 tag, folds into v0.1.0), M1 plan written (11 tasks, local plan file)
 - [x] 2026-07-13: research notes (injection tools from source, whisper.cpp API incl. built-in Silero VAD find), ADRs 001-008 accepted (GUI: GTK4 + libadwaita)
 - [x] 2026-07-13: workspace skeleton (3 binaries), CI (lint, test matrix, deny, privacy grep), hygiene files, templates
