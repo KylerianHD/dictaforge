@@ -1,0 +1,6 @@
+[package]
+name = "openflow-cli"
+description = "Command line control for the dictation daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true

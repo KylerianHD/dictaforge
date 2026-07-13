@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo fmt --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu-x86_64
+            os: ubuntu-24.04
+          - name: ubuntu-aarch64
+            os: ubuntu-24.04-arm
+          - name: arch
+            os: ubuntu-24.04
+            container: archlinux:latest
+          - name: fedora
+            os: ubuntu-24.04
+            container: fedora:latest
+    name: test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v4
+      - if: matrix.container == 'archlinux:latest'
+        run: pacman -Syu --noconfirm rust gcc
+      - if: matrix.container == 'fedora:latest'
+        run: dnf install -y rust cargo gcc
+      - run: cargo build --workspace
+      - run: cargo test --workspace
+
+  deny:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+  # Privacy bar: no networking crates may link into the default build.
+  # Network access is only allowed behind the byok feature flag.
+  privacy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          hits=$(cargo tree --workspace --edges normal --prefix none | sort -u \
+            | grep -Ei '^(reqwest|hyper|ureq|isahc|curl|attohttpc|surf|tokio-tungstenite) ' || true)
+          if [ -n "$hits" ]; then
+            echo "networking crates in the default build:"
+            echo "$hits"
+            exit 1
+          fi

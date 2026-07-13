@@ -6,9 +6,9 @@ OpenFlow is a working name. It collides with the ONF OpenFlow SDN protocol; rena
 - [x] Git repo (main + dev), license (GPL-3.0-or-later), .gitignore
 - [x] ADR index (docs/adr/README.md)
 - [x] Injection backend decision table (docs/research/injection-backends.md)
-- [ ] Cargo workspace skeleton: openflowd, openflow, openflow-cli, crates/*
-- [ ] CI: fmt check, clippy -D warnings, tests, cargo-deny, no-network-crates check (byok feature gate)
-- [ ] Repo hygiene: README, PRIVACY.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, issue/PR templates
+- [x] Cargo workspace skeleton: openflowd, openflow, openflow-cli (crates/* added when the first shared code appears)
+- [x] CI: fmt check, clippy -D warnings, tests, cargo-deny, no-network-crates check (byok feature gate)
+- [x] Repo hygiene: README, PRIVACY.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, issue/PR templates
 - [ ] Research notes: wtype/dotool/ydotool/kdotool techniques, whisper.cpp API (docs/research/)
 - [ ] ADRs 001-007 written, GUI toolkit evaluated and decided (ADR 008)
 
