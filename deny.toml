@@ -12,6 +12,3 @@ allow = [
 
 [advisories]
 yanked = "deny"
-
-[bans]
-multiple-versions = "warn"
