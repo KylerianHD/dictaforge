@@ -5,7 +5,7 @@ One file per major decision: `NNN-slug.md`. Status: proposed, accepted, or super
 | NNN | Title | Status |
 |-----|-------|--------|
 | [001](001-language-rust.md) | Language: Rust, C/C++ via FFI only per component when bindings fall short | accepted |
-| [002](002-process-split.md) | Three processes: openflowd daemon, openflow GUI, openflow-cli, D-Bus between them | accepted |
+| [002](002-process-split.md) | Three processes: dictaforged daemon, dictaforge GUI, dictaforge-cli, D-Bus between them | accepted |
 | [003](003-injection-chain.md) | Text injection backend chain with a layout-proof floor | accepted |
 | [004](004-stt-abstraction.md) | STT behind a trait, whisper.cpp default | accepted |
 | [005](005-audio-capture.md) | Audio capture through cpal, PipeWire first | accepted |

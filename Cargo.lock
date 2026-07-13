@@ -3,13 +3,13 @@
 version = 4
 
 [[package]]
-name = "openflow"
+name = "dictaforge"
 version = "0.0.1"
 
 [[package]]
-name = "openflow-cli"
+name = "dictaforge-cli"
 version = "0.0.1"
 
 [[package]]
-name = "openflowd"
+name = "dictaforged"
 version = "0.0.1"

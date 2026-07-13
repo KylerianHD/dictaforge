@@ -10,7 +10,6 @@ Live task list. ROADMAP.md holds the milestone view.
 - [x] Name: DictaForge (2026-07-13). Verified clean: crates.io free, AUR free, no web presence, one dormant unrelated 0-star GitHub repo. VoxForge rejected (voxforge.org, same-domain FOSS project), VoxSmith rejected (crates.io taken by active voxel crate, domains gone). Binaries: dictaforge (GUI), dictaforged (daemon), dictaforge-cli. Rename lands as M1 Task 0.
 
 ## Backlog notes
-- [ ] Create GitHub remote once the project name is decided (a clean start beats rename redirects)
 - [ ] Release workflow (artifacts on tag) lands with the first tag at end of M1
 - [ ] Headless sway/Xvfb injection tests in CI land with the injection code in M1
 - [ ] Replace the short code of conduct with Contributor Covenant if the community grows
