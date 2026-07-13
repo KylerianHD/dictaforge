@@ -9,8 +9,8 @@ OpenFlow is a working name. It collides with the ONF OpenFlow SDN protocol; rena
 - [x] Cargo workspace skeleton: openflowd, openflow, openflow-cli (crates/* added when the first shared code appears)
 - [x] CI: fmt check, clippy -D warnings, tests, cargo-deny, no-network-crates check (byok feature gate)
 - [x] Repo hygiene: README, PRIVACY.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, issue/PR templates
-- [ ] Research notes: wtype/dotool/ydotool/kdotool techniques, whisper.cpp API (docs/research/)
-- [ ] ADRs 001-007 written, GUI toolkit evaluated and decided (ADR 008)
+- [x] Research notes: wtype/dotool/ydotool/kdotool techniques, whisper.cpp API (docs/research/)
+- [x] ADRs 001-007 written, GUI toolkit evaluated and decided (ADR 008: GTK4 + libadwaita)
 
 ## M1: Vertical slice (MVP)
 - [ ] Audio capture via cpal, PipeWire first, 16 kHz mono resample

@@ -12,3 +12,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cargo workspace with openflowd, openflow, and openflow-cli stubs.
 - CI: format and clippy checks, test matrix (Ubuntu x86_64/aarch64, Arch, Fedora), cargo-deny, and a check that no networking crates enter the default build.
 - README, PRIVACY, CONTRIBUTING, SECURITY, code of conduct, and issue/PR templates.
+- Research notes on wtype/dotool/ydotool/kdotool internals and the whisper.cpp API.
+- ADRs 001 through 008: language, process split, injection chain, STT abstraction, audio capture, hotkey tiers, cleanup LLM, GUI toolkit (GTK4 + libadwaita).
