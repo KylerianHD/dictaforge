@@ -7,5 +7,6 @@ license.workspace = true
 
 [dependencies]
 anyhow = "1.0.103"
+input-linux = "0.7.1"
 serde_json = "1.0.150"
 xkbcommon = "0.9.0"
