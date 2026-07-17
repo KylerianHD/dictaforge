@@ -3,7 +3,7 @@
 Live task list. ROADMAP.md holds the milestone view.
 
 ## Next step (M1, waiting for go)
-- [ ] M1 Task 3: Injector trait + uinput backend (plan: .claude/plans/2026-07-13-m1-vertical-slice.md, local only)
+- [ ] M1 Task 4: wlroots virtual-keyboard backend (plan: .claude/plans/2026-07-13-m1-vertical-slice.md, local only)
 
 ## Decided
 - [x] Name: DictaForge (2026-07-13). Verified clean: crates.io free, AUR free, no web presence, one dormant unrelated 0-star GitHub repo. VoxForge rejected (voxforge.org, same-domain FOSS project), VoxSmith rejected (crates.io taken by active voxel crate, domains gone). Binaries: dictaforge (GUI), dictaforged (daemon), dictaforge-cli. Rename lands as M1 Task 0.
@@ -14,6 +14,7 @@ Live task list. ROADMAP.md holds the milestone view.
 - [ ] Replace the short code of conduct with Contributor Covenant if the community grows
 
 ## Done
+- [x] 2026-07-17: M1 Task 3: uinput injector merged (PR #4, squash 53fa502, CI 6/6). Injector trait + InjectError; UinputInjector replays KeymapIndex plans as modifier chords through an EventSink (tests assert exact event sequences, no /dev/uinput); all-or-nothing rejection of unreachable/foreign-group/unproducible-mod chars; KeymapIndex gained group() and mod_keys() preferring physical modifier keys (phantom <LVL3> at evdev 84 caught by TDD). Manual acceptance passed on KDE Wayland: --inject-test "Grüße @ QWERTZ" typed flawlessly
 - [x] 2026-07-17: M1 Task 2: active layout detection merged (PR #3, squash 82c35ce, CI 6/6). Priority chain override > KDE kxkbrc+D-Bus > GNOME gsettings > hyprctl > swaymsg > locale1 > us; pure fixture-tested parsers, thin shell-out runners. Multi-layout sessions keep the full group list; sway layout names resolve to XKB codes via evdev.xml, Hyprland's active_keymap resolves to a group by compiled layout name. Live-verified on this KDE machine (no kxkbrc, falls to locale1, returns de)
 - [x] 2026-07-15: M1 Task 1: reverse keymap core merged (PR #2, squash 74dbfeb, CI 6/6). KeymapIndex reverse-maps chars to evdev keycode + mod mask + group via xkbcommon; dead keys as compose Sequences; round-trip tests on us, de, us(dvorak), fr. Finding: KEY_EURO (evdev 435) makes the euro sign reachable on every layout, so plain us types it too
 - [x] 2026-07-13: M1 Task 0: renamed to DictaForge repo-wide, private GitHub repo created (KylerianHD/dictaforge, dev default), first CI run green (6 jobs), PR #1 squash-merged. Server-side branch protection impossible on free private repos; local pre-push hook guards main/dev against force push and deletion instead, prepared rulesets wait in .claude/rulesets/ for when the repo goes public (target: v0.1.0)
