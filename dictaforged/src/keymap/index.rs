@@ -11,6 +11,9 @@ pub struct KeymapIndex {
     keymap: xkb::Keymap,
     compose: Option<compose::Table>,
     plans: HashMap<char, CharPlan>,
+    group: u32,
+    /// Modifier mask -> evdev keycode of a key that depresses exactly it.
+    mod_keys: Vec<(xkb::ModMask, u32)>,
 }
 
 /// True when plan `a` beats plan `b`: prefer the requested group, then no
@@ -149,11 +152,61 @@ impl KeymapIndex {
             }
         }
 
+        // Which physical keys depress which modifier masks (Shift, AltGr, ...):
+        // press each key on a fresh state and read the depressed mods.
+        let mut mod_keys: Vec<(xkb::ModMask, u32)> = Vec::new();
+        keymap.key_for_each(|km, key| {
+            if key.raw() < 8 {
+                return;
+            }
+            // ctrl, shift, alt, capslock, altgr, meta: left and right.
+            // xkeyboard-config also puts modifiers on phantom keys no real
+            // keyboard sends (<LVL3> at evdev 84); prefer the physical ones
+            const REAL_MOD_KEYS: &[u32] = &[29, 42, 54, 56, 58, 97, 100, 125, 126];
+            let code = key.raw() - 8;
+            let mut st = xkb::State::new(km);
+            st.update_key(key, xkb::KeyDirection::Down);
+            let mask = st.serialize_mods(xkb::STATE_MODS_DEPRESSED);
+            if mask == 0 {
+                return;
+            }
+            let rank = |c: u32| (!REAL_MOD_KEYS.contains(&c), c);
+            match mod_keys.iter_mut().find(|(m, _)| *m == mask) {
+                Some((_, cur)) if rank(code) < rank(*cur) => *cur = code,
+                None => mod_keys.push((mask, code)),
+                _ => {}
+            }
+        });
+
         Ok(Self {
             keymap,
             compose: compose_table,
             plans,
+            group: spec.group,
+            mod_keys,
         })
+    }
+
+    /// The group plans were ranked for; injectors that cannot switch groups
+    /// must refuse plans on any other group.
+    pub fn group(&self) -> u32 {
+        self.group
+    }
+
+    /// Evdev keycodes to hold for a modifier mask, None when no combination
+    /// of modifier keys produces exactly it.
+    pub fn mod_keys(&self, mods: xkb::ModMask) -> Option<Vec<u32>> {
+        let mut remaining = mods;
+        let mut keys = Vec::new();
+        while remaining != 0 {
+            let (mask, key) = self
+                .mod_keys
+                .iter()
+                .find(|(m, _)| m & remaining != 0 && m & !mods == 0)?;
+            remaining &= !mask;
+            keys.push(*key);
+        }
+        Some(keys)
     }
 
     pub fn plan(&self, text: &str) -> Vec<CharPlan> {
