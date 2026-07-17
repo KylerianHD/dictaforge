@@ -1,0 +1,28 @@
+[
+  {
+    "identifier": "1133:16500:Logitech_USB_Receiver",
+    "name": "Logitech USB Receiver",
+    "vendor": 1133,
+    "product": 16500,
+    "type": "pointer",
+    "libinput": {
+      "send_events": "enabled"
+    }
+  },
+  {
+    "identifier": "1:1:AT_Translated_Set_2_keyboard",
+    "name": "AT Translated Set 2 keyboard",
+    "vendor": 1,
+    "product": 1,
+    "type": "keyboard",
+    "xkb_layout_names": [
+      "English (US)",
+      "German (no dead keys)"
+    ],
+    "xkb_active_layout_index": 1,
+    "xkb_active_layout_name": "German (no dead keys)",
+    "libinput": {
+      "send_events": "enabled"
+    }
+  }
+]

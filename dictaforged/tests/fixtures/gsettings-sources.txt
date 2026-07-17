@@ -1,0 +1,2 @@
+[('xkb', 'us'), ('xkb', 'de+nodeadkeys')]
+[('xkb', 'de+nodeadkeys'), ('xkb', 'us')]
