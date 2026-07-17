@@ -1,11 +1,14 @@
 //! Pure layout math: reverse-map characters to key presses via xkbcommon.
 //! No device or display access lives here; injectors consume the plans.
 
+mod detect;
 mod index;
 
+pub use detect::detect;
 pub use index::KeymapIndex;
 
 /// XKB layout selection, detected from the session or overridden by config.
+#[derive(Clone, PartialEq, Debug)]
 pub struct LayoutSpec {
     pub layout: String,
     pub variant: String,
