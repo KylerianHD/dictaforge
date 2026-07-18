@@ -7,7 +7,10 @@ license.workspace = true
 
 [dependencies]
 anyhow = "1.0.103"
+audioadapter-buffers = "4.0.0"
+cpal = "0.18.1"
 input-linux = "0.7.1"
+rubato = "4.0.0"
 serde_json = "1.0.150"
 wayland-client = "0.31.14"
 wayland-protocols-misc = { version = "0.3.12", features = ["client"] }
