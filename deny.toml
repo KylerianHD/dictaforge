@@ -12,3 +12,10 @@ allow = [
 
 [advisories]
 yanked = "deny"
+ignore = [
+    # quick-xml DoS advisories (fixed in 0.41). Only used by wayland-scanner
+    # at build time to parse the protocol XML shipped inside the crate, never
+    # attacker-controlled input. Drop when wayland-scanner moves past ^0.39.
+    "RUSTSEC-2026-0194",
+    "RUSTSEC-2026-0195",
+]
