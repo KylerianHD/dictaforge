@@ -1,5 +1,7 @@
 // ponytail: allows drop when the daemon (Task 10) consumes everything
 #[allow(dead_code, unused_imports)]
+mod audio;
+#[allow(dead_code, unused_imports)]
 mod inject;
 #[allow(dead_code, unused_imports)]
 mod keymap;
@@ -36,6 +38,18 @@ fn main() {
         eprintln!("focus the target field, injecting in 3 s");
         std::thread::sleep(std::time::Duration::from_secs(3));
         injector.inject(text).expect("inject");
+        return;
+    }
+    // debug aid, kept permanently: record 5 s from the default mic and dump
+    // the normalized 16 kHz mono take as a wav for listening
+    if let ["--dump-wav", path] = &args.iter().map(String::as_str).collect::<Vec<_>>()[..] {
+        let handle = audio::Recorder::start(None).expect("audio capture");
+        eprintln!("recording 5 s, speak now");
+        std::thread::sleep(std::time::Duration::from_secs(5));
+        let mut samples = handle.stop().expect("resample");
+        audio::normalize(&mut samples);
+        audio::write_wav(std::path::Path::new(path), &samples).expect("write wav");
+        eprintln!("wrote {} samples (16 kHz mono) to {path}", samples.len());
         return;
     }
     // ponytail: stub until M1 wires up audio, STT, and injection
