@@ -5,6 +5,8 @@ mod audio;
 mod inject;
 #[allow(dead_code, unused_imports)]
 mod keymap;
+#[allow(dead_code, unused_imports)]
+mod stt;
 
 use inject::Injector;
 
