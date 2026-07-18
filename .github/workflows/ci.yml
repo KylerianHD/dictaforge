@@ -43,9 +43,9 @@ jobs:
       - if: matrix.container == ''
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev xkb-data libx11-data libasound2-dev
       - if: matrix.container == 'archlinux:latest'
-        run: pacman -Syu --noconfirm rust gcc libxkbcommon libxkbcommon-x11 libxcb xkeyboard-config libx11 alsa-lib pkgconf
+        run: pacman -Syu --noconfirm rust gcc libxkbcommon libxkbcommon-x11 libxcb xkeyboard-config libx11 alsa-lib pkgconf cmake make clang
       - if: matrix.container == 'fedora:latest'
-        run: dnf install -y rust cargo gcc libxkbcommon-devel libxkbcommon-x11-devel libxcb-devel xkeyboard-config libX11-common alsa-lib-devel
+        run: dnf install -y rust cargo gcc libxkbcommon-devel libxkbcommon-x11-devel libxcb-devel xkeyboard-config libX11-common alsa-lib-devel cmake gcc-c++ make clang-devel
       - run: cargo build --workspace
       - run: cargo test --workspace
 
