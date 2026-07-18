@@ -2,8 +2,10 @@
 //! (uinput now; wlroots virtual keyboard and XTEST follow).
 
 mod uinput;
+mod virtual_keyboard;
 
 pub use uinput::{EventSink, UinputInjector};
+pub use virtual_keyboard::VirtualKeyboardInjector;
 
 use std::fmt;
 

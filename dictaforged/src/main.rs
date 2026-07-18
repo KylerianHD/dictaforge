@@ -10,6 +10,14 @@ fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     // temporary manual-acceptance flag, removed in Task 10 when
     // dictaforge-cli type covers it
+    if let ["--inject-test-vk", text] = &args.iter().map(String::as_str).collect::<Vec<_>>()[..] {
+        let mut injector = inject::VirtualKeyboardInjector::new();
+        injector.probe().expect("virtual keyboard available");
+        eprintln!("focus the target field, injecting in 3 s");
+        std::thread::sleep(std::time::Duration::from_secs(3));
+        injector.inject(text).expect("inject");
+        return;
+    }
     if let ["--inject-test", text] = &args.iter().map(String::as_str).collect::<Vec<_>>()[..] {
         let spec = keymap::detect(None);
         eprintln!("layout: {spec:?}");
