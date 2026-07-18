@@ -53,7 +53,15 @@ impl VirtualKeyboardInjector {
         // keymap wants an fd; a deleted temp file keeps the fd alive
         let src = keymap_source(&self.chars);
         let path = std::env::temp_dir().join(format!("dictaforged-keymap-{}", std::process::id()));
-        let mut file = std::fs::File::create(&path).map_err(InjectError::Io)?;
+        // read+write: the compositor mmaps the fd read-only, which fails on
+        // a write-only fd
+        let mut file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&path)
+            .map_err(InjectError::Io)?;
         let _ = std::fs::remove_file(&path);
         file.write_all(src.as_bytes()).map_err(InjectError::Io)?;
         file.write_all(b"\0").map_err(InjectError::Io)?;
