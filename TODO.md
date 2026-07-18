@@ -3,7 +3,7 @@
 Live task list. ROADMAP.md holds the milestone view.
 
 ## Next step (M1, waiting for go)
-- [ ] M1 Task 6: audio capture (plan: .claude/plans/2026-07-13-m1-vertical-slice.md, local only)
+- [ ] M1 Task 7: STT engine (plan: .claude/plans/2026-07-13-m1-vertical-slice.md, local only)
 
 ## Decided
 - [x] Name: DictaForge (2026-07-13). Verified clean: crates.io free, AUR free, no web presence, one dormant unrelated 0-star GitHub repo. VoxForge rejected (voxforge.org, same-domain FOSS project), VoxSmith rejected (crates.io taken by active voxel crate, domains gone). Binaries: dictaforge (GUI), dictaforged (daemon), dictaforge-cli. Rename lands as M1 Task 0.
@@ -14,6 +14,7 @@ Live task list. ROADMAP.md holds the milestone view.
 - [ ] Replace the short code of conduct with Contributor Covenant if the community grows
 
 ## Done
+- [x] 2026-07-18: M1 Task 6: audio capture merged (PR #7, squash 34be42c, CI 6/6 after adding ALSA dev libs and pkgconf-on-arch to CI installs). Recorder/RecordingHandle over cpal (native device format, f32/i16/u16), pure to_mono_16k (channel-average + rubato Fft resample) and normalize (peak to -3 dBFS, noise gate below 0.01) with synthetic-sine tests; permanent --dump-wav flag writes a hand-rolled 16-bit PCM WAV. stop() returns Result, deliberate deviation from the plan's bare Vec. Capture path verified end to end (5 s -> 80043 samples, valid WAV); recorded silence matched pw-record (mic silent system-wide at test time), spoken mic check still open
 - [x] 2026-07-18: M1 Task 5: XTEST injector merged (PR #6, squash bc772e6, CI 6/6 after adding xcb/xkbcommon-x11 libs to CI installs). KeymapIndex built from the X server's actual keymap (xkbcommon-x11, new from_keymap constructor); chords for plans that fit the core protocol, spare-keycode keysym remap (xdotool technique, restored on drop) for the rest, including keycodes above 247 (KEY_EURO, and the finding that numbersign also rides a phantom high key on us). Ignored xvfb integration test passes locally: chords + remaps on us, then setxkbmap de round-trip. Temporary --inject-test-xtest flag until Task 10
 - [x] 2026-07-18: M1 Task 4: wlroots virtual-keyboard injector merged (PR #5, squash 13cc978, CI 6/6). VirtualKeyboardInjector uploads its own xkb keymap (wtype technique, fresh keycodes from 8, regenerated on new chars) so any Unicode char is typeable; probe returns Unavailable without the protocol (verified live on KDE). Acceptance ran on headless sway with wev instead of Hyprland (not installed): received string matched "Grüße € 日本語" exactly; the check caught a real bug (keymap fd was write-only, compositor mmap failed). cargo-deny ignores added for quick-xml build-time advisories (RUSTSEC-2026-0194/0195) until wayland-scanner moves past ^0.39
 - [x] 2026-07-17: M1 Task 3: uinput injector merged (PR #4, squash 53fa502, CI 6/6). Injector trait + InjectError; UinputInjector replays KeymapIndex plans as modifier chords through an EventSink (tests assert exact event sequences, no /dev/uinput); all-or-nothing rejection of unreachable/foreign-group/unproducible-mod chars; KeymapIndex gained group() and mod_keys() preferring physical modifier keys (phantom <LVL3> at evdev 84 caught by TDD). Manual acceptance passed on KDE Wayland: --inject-test "Grüße @ QWERTZ" typed flawlessly
