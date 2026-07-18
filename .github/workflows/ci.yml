@@ -40,11 +40,11 @@ jobs:
       # xkbcommon links libxkbcommon; keymap tests need xkeyboard-config
       # data and the X11 Compose files at runtime
       - if: matrix.container == ''
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev xkb-data libx11-data
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev xkb-data libx11-data
       - if: matrix.container == 'archlinux:latest'
-        run: pacman -Syu --noconfirm rust gcc libxkbcommon xkeyboard-config libx11
+        run: pacman -Syu --noconfirm rust gcc libxkbcommon libxkbcommon-x11 libxcb xkeyboard-config libx11
       - if: matrix.container == 'fedora:latest'
-        run: dnf install -y rust cargo gcc libxkbcommon-devel xkeyboard-config libX11-common
+        run: dnf install -y rust cargo gcc libxkbcommon-devel libxkbcommon-x11-devel libxcb-devel xkeyboard-config libX11-common
       - run: cargo build --workspace
       - run: cargo test --workspace
 
