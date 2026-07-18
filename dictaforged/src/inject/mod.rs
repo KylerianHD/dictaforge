@@ -3,9 +3,11 @@
 
 mod uinput;
 mod virtual_keyboard;
+mod xtest;
 
 pub use uinput::{EventSink, UinputInjector};
 pub use virtual_keyboard::VirtualKeyboardInjector;
+pub use xtest::XtestInjector;
 
 use std::fmt;
 

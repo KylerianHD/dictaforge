@@ -50,7 +50,13 @@ impl KeymapIndex {
                 spec.variant
             )
         })?;
+        Ok(Self::from_keymap(keymap, spec.group))
+    }
 
+    /// Build the index for an already-compiled keymap (e.g. fetched from the
+    /// X server) and a target group.
+    pub fn from_keymap(keymap: xkb::Keymap, group: u32) -> Self {
+        let ctx = xkb::Context::new(xkb::CONTEXT_NO_FLAGS);
         // ponytail: en_US.UTF-8 is the canonical superset Compose table that
         // every UTF-8 session maps to; user Compose override when someone asks
         let compose_table = compose::Table::new_from_locale(
@@ -66,6 +72,7 @@ impl KeymapIndex {
         };
 
         // Reverse pass: cheapest KeyPlan per keysym across keys x groups x levels.
+        let target_group = group;
         let mut sym_plans: HashMap<xkb::Keysym, KeyPlan> = HashMap::new();
         keymap.key_for_each(|km, key| {
             if key.raw() < 8 {
@@ -93,7 +100,7 @@ impl KeymapIndex {
                         group,
                     };
                     match sym_plans.get(sym) {
-                        Some(cur) if !better(&cand, cur, spec.group, caps_mask) => {}
+                        Some(cur) if !better(&cand, cur, target_group, caps_mask) => {}
                         _ => {
                             sym_plans.insert(*sym, cand);
                         }
@@ -110,7 +117,7 @@ impl KeymapIndex {
                 continue;
             };
             match plans.get(&c) {
-                Some(CharPlan::Direct(cur)) if !better(kp, cur, spec.group, caps_mask) => {}
+                Some(CharPlan::Direct(cur)) if !better(kp, cur, group, caps_mask) => {}
                 _ => {
                     plans.insert(c, CharPlan::Direct(*kp));
                 }
@@ -178,13 +185,13 @@ impl KeymapIndex {
             }
         });
 
-        Ok(Self {
+        Self {
             keymap,
             compose: compose_table,
             plans,
-            group: spec.group,
+            group,
             mod_keys,
-        })
+        }
     }
 
     /// The group plans were ranked for; injectors that cannot switch groups
