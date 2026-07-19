@@ -3,6 +3,6 @@ resolver = "3"
 members = ["dictaforged", "dictaforge", "dictaforge-cli"]
 
 [workspace.package]
-version = "0.0.1"
+version = "0.1.0"
 edition = "2024"
 license = "GPL-3.0-or-later"

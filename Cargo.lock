@@ -431,18 +431,18 @@ checksum = "7cd812cc2bc1d69d4764bd80df88b4317eaef9e773c75226407d9bc0876b211c"
 
 [[package]]
 name = "dictaforge"
-version = "0.0.1"
+version = "0.1.0"
 
 [[package]]
 name = "dictaforge-cli"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "zbus",
 ]
 
 [[package]]
 name = "dictaforged"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "audioadapter-buffers",
