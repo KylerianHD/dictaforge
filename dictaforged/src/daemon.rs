@@ -105,12 +105,19 @@ impl Pipeline {
             // one fake second so the too-short guard does not kick in
             Pipeline::Stub { .. } => Ok(vec![0.05; audio::TARGET_RATE as usize]),
             Pipeline::Real(r) => {
+                // ponytail: grace period so frames still in flight at hotkey
+                // release arrive; a persistent stream is the M2 fix if this
+                // is not enough
+                std::thread::sleep(std::time::Duration::from_millis(300));
                 let handle = r
                     .recording
                     .take()
                     .ok_or_else(|| anyhow::anyhow!("not recording"))?;
                 let mut pcm = handle.stop()?;
                 audio::normalize(&mut pcm);
+                // trailing silence keeps whisper from dropping a final word
+                // that was cut off mid-breath
+                pcm.extend(std::iter::repeat_n(0.0, audio::TARGET_RATE as usize / 2));
                 Ok(pcm)
             }
         }
