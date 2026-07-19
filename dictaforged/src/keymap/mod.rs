@@ -8,11 +8,15 @@ pub use detect::detect;
 pub use index::KeymapIndex;
 
 /// XKB layout selection, detected from the session or overridden by config.
-#[derive(Clone, PartialEq, Debug)]
+/// Serde lets the config file override it; only `layout` is required there.
+#[derive(Clone, PartialEq, Debug, serde::Serialize, serde::Deserialize)]
 pub struct LayoutSpec {
     pub layout: String,
+    #[serde(default)]
     pub variant: String,
+    #[serde(default)]
     pub options: Option<String>,
+    #[serde(default)]
     pub group: u32,
 }
 

@@ -4,3 +4,6 @@ description = "Command line control for the dictation daemon"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+
+[dependencies]
+zbus = "5.18.0"

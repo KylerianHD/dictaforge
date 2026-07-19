@@ -2,6 +2,10 @@
 #[allow(dead_code, unused_imports)]
 mod audio;
 #[allow(dead_code, unused_imports)]
+mod config;
+#[allow(dead_code, unused_imports)]
+mod dbus;
+#[allow(dead_code, unused_imports)]
 mod inject;
 #[allow(dead_code, unused_imports)]
 mod keymap;
@@ -52,6 +56,14 @@ fn main() {
         audio::normalize(&mut samples);
         audio::write_wav(std::path::Path::new(path), &samples).expect("write wav");
         eprintln!("wrote {} samples (16 kHz mono) to {path}", samples.len());
+        return;
+    }
+    // Serve the D-Bus API over the stub pipeline: no audio, no injection,
+    // InjectText prints to stdout. Task 10 adds the real-hardware default run.
+    if let ["--no-hardware"] = &args.iter().map(String::as_str).collect::<Vec<_>>()[..] {
+        let cfg = config::Config::load(&config::Config::default_path()).expect("config");
+        let daemon = dbus::Daemon::new(cfg, dbus::Pipeline::Stub);
+        dbus::serve(daemon).expect("dbus service");
         return;
     }
     // ponytail: stub until M1 wires up audio, STT, and injection
