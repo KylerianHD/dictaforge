@@ -49,6 +49,34 @@ jobs:
       - run: cargo build --workspace
       - run: cargo test --workspace
 
+  # Real transports and a real model: daemon on headless sway typing into a
+  # client, XTEST under Xvfb across three layouts, whisper round trip with a
+  # cached tiny model (the only network use in CI; models never ship).
+  integration:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev xkb-data libx11-data libasound2-dev sway wev xvfb x11-xkb-utils dbus
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/dictaforge
+          key: whisper-tiny-en
+      - name: fetch tiny model unless cached
+        run: |
+          mkdir -p ~/.cache/dictaforge
+          [ -f ~/.cache/dictaforge/ggml-tiny.en.bin ] || curl -sSfL -o ~/.cache/dictaforge/ggml-tiny.en.bin \
+            https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin
+      - name: daemon full loop on headless sway
+        run: |
+          export XDG_RUNTIME_DIR=/tmp/xdgr && mkdir -m 700 -p "$XDG_RUNTIME_DIR"
+          dbus-run-session -- cargo test -p dictaforged --test inject_sway -- --ignored
+      - name: stub daemon dbus round trip
+        run: dbus-run-session -- cargo test -p dictaforged --test dbus -- --ignored
+      - name: xtest under xvfb (us, de, dvorak)
+        run: xvfb-run -a cargo test -p dictaforged -- --ignored xtest
+      - name: stt with the cached tiny model
+        run: DICTAFORGE_TEST_MODEL=$HOME/.cache/dictaforge/ggml-tiny.en.bin cargo test -p dictaforged -- --ignored transcribes_jfk
+
   deny:
     runs-on: ubuntu-24.04
     steps:
