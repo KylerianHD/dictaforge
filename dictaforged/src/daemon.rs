@@ -120,16 +120,13 @@ impl Pipeline {
         match self {
             Pipeline::Stub { transcript, .. } => Ok(transcript.clone()),
             Pipeline::Real(r) => {
-                if r.stt.is_none() {
-                    let engine = SttEngine::load(&r.model).map_err(|e| {
+                let stt = match &mut r.stt {
+                    Some(stt) => stt,
+                    None => r.stt.insert(SttEngine::load(&r.model).map_err(|e| {
                         anyhow::anyhow!("cannot load STT model from {}: {e}", r.model.display())
-                    })?;
-                    r.stt = Some(engine);
-                }
-                r.stt
-                    .as_mut()
-                    .expect("just loaded")
-                    .transcribe(pcm, r.language.as_deref())
+                    })?),
+                };
+                stt.transcribe(pcm, r.language.as_deref())
             }
         }
     }
