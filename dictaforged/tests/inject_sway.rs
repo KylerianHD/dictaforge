@@ -95,6 +95,8 @@ fn sway_full_loop() {
         .args(["-V", "-c", sway_cfg.to_str().unwrap()])
         .env("WLR_BACKENDS", "headless")
         .env("WLR_LIBINPUT_NO_DEVICES", "1")
+        // CI runners have no GPU; the software renderer works everywhere
+        .env("WLR_RENDERER", "pixman")
         .env_remove("WAYLAND_DISPLAY")
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
