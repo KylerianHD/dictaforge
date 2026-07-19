@@ -12,6 +12,16 @@ fn too_short(pcm16k: &[f32]) -> bool {
     pcm16k.len() < MIN_SAMPLES
 }
 
+/// Encoder states to compute for a take. whisper.cpp always pads audio to a
+/// 30 s window and runs the encoder over all 1500 states unless audio_ctx
+/// caps it; 1500 states / 30 s = 50 per second, so cap at the real audio
+/// length plus headroom. This is what brings a 5 s utterance from ~20 s to
+/// ~1 s on CPU. Floor of 128 because tiny contexts degrade accuracy.
+fn audio_ctx_for(samples: usize) -> i32 {
+    let secs = samples as f32 / crate::audio::TARGET_RATE as f32;
+    ((secs * 50.0).ceil() as i32 + 32).clamp(128, 1500)
+}
+
 pub struct SttEngine {
     state: whisper_rs::WhisperState,
 }
@@ -47,6 +57,7 @@ impl SttEngine {
         params.set_print_realtime(false);
         params.set_print_timestamps(false);
         params.set_suppress_nst(true);
+        params.set_audio_ctx(audio_ctx_for(pcm16k.len()));
         self.state.full(params, pcm16k)?;
         let mut text = String::new();
         for segment in self.state.as_iter() {
@@ -91,6 +102,44 @@ mod tests {
         // Short-input guard, checked here where a loaded engine exists.
         assert_eq!(engine.transcribe(&[], None).unwrap(), "");
         assert_eq!(engine.transcribe(&pcm[..8000], None).unwrap(), "");
+    }
+
+    /// Latency measurement for docs/research/latency-m1.md; prints timings.
+    /// Run via scripts/latency.sh (release build, pinned to 4 cores).
+    #[test]
+    #[ignore = "needs a whisper model; set DICTAFORGE_TEST_MODEL"]
+    fn latency_10s_utterance() {
+        let model = std::env::var("DICTAFORGE_TEST_MODEL").expect("DICTAFORGE_TEST_MODEL");
+        let mut engine = SttEngine::load(Path::new(&model)).unwrap();
+
+        // 10 s utterance: the 6 s fixture plus its first 4 s again.
+        let bytes = include_bytes!("../tests/fixtures/jfk-16k.wav");
+        let mut pcm: Vec<f32> = bytes[44..]
+            .chunks_exact(2)
+            .map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / i16::MAX as f32)
+            .collect();
+        let four_secs = pcm[..4 * crate::audio::TARGET_RATE as usize].to_vec();
+        pcm.extend(four_secs);
+
+        for run in 1..=2 {
+            let t = std::time::Instant::now();
+            let text = engine.transcribe(&pcm, Some("en")).unwrap();
+            println!(
+                "latency model={model} threads={} audio={:.1}s run{run}={:.2}s text={text:?}",
+                std::thread::available_parallelism().map_or(4, |n| n.get()),
+                pcm.len() as f32 / 16000.0,
+                t.elapsed().as_secs_f32(),
+            );
+            assert!(!text.is_empty(), "empty transcript");
+        }
+    }
+
+    #[test]
+    fn audio_ctx_scales_with_take_length() {
+        let rate = crate::audio::TARGET_RATE as usize;
+        assert_eq!(audio_ctx_for(rate), 128); // 1 s hits the floor
+        assert_eq!(audio_ctx_for(10 * rate), 532); // 10 s: 500 + headroom
+        assert_eq!(audio_ctx_for(60 * rate), 1500); // never above the window
     }
 
     #[test]

@@ -288,27 +288,65 @@ mod tests {
     }
 
     #[test]
-    fn roundtrip_us() {
-        let idx = index("us", "");
-        assert_eq!(replay(&idx, "Hello, World! 123"), "Hello, World! 123");
+    fn roundtrip_latin_matrix() {
+        let cases = [
+            ("us", "", "Hello, World! 123"),
+            ("de", "", "zäöüß Zylinder @{[]}"),
+            ("de", "neo", "neo läuft ähnlich ßüö"),
+            ("fr", "", "azerty éèç"),
+            ("fr", "bepo", "bépo çà où"),
+            ("es", "", "mañana ñÑ ¡olé! ¿qué?"),
+            ("it", "", "perché città àèìòù"),
+            ("se", "", "smörgås åäö ÅÄÖ"),
+            ("us", "dvorak", "hello dvorak"),
+            ("us", "colemak", "hello colemak"),
+            ("gb", "", "quid £3 \"quotes\" @sign"),
+            ("tr", "", "günaydın ğüşöç İi"),
+            ("cz", "", "žluťoučký kůň ěščř"),
+            ("pl", "", "zażółć gęślą jaźń"),
+            ("hu", "", "árvíztűrő tükörfúrógép"),
+            ("ch", "", "grüezi mitenand äöü è"),
+            ("jp", "", "romaji nihongo 123"),
+        ];
+        for (layout, variant, text) in cases {
+            let idx = index(layout, variant);
+            assert_eq!(replay(&idx, text), text, "layout {layout} {variant:?}");
+        }
     }
 
     #[test]
-    fn roundtrip_de() {
-        let idx = index("de", "");
-        assert_eq!(replay(&idx, "zäöüß Zylinder @{[]}"), "zäöüß Zylinder @{[]}");
-    }
-
-    #[test]
-    fn roundtrip_dvorak() {
-        let idx = index("us", "dvorak");
-        assert_eq!(replay(&idx, "hello dvorak"), "hello dvorak");
-    }
-
-    #[test]
-    fn roundtrip_fr() {
-        let idx = index("fr", "");
-        assert_eq!(replay(&idx, "azerty éèç"), "azerty éèç");
+    fn roundtrip_non_latin_groups() {
+        // Non-Latin layouts ship as group 1 behind a Latin group 0 (that is
+        // how real sessions configure them, us+ru etc.). With the native
+        // group active, native chars plan on group 1 and ASCII falls back
+        // to group 0.
+        let cases = [
+            ("us,ru", "привет мир", 'q'),
+            ("us,ua", "привіт світ", 'q'),
+            ("us,gr", "γειά σου", 'q'),
+            ("us,il", "שלום עולם", 'q'),
+        ];
+        for (layouts, native, ascii) in cases {
+            let idx = KeymapIndex::from_spec(&LayoutSpec {
+                layout: layouts.into(),
+                variant: ",".into(),
+                options: None,
+                group: 1,
+            })
+            .unwrap();
+            assert_eq!(replay(&idx, native), native, "layouts {layouts}");
+            let plans = idx.plan(&ascii.to_string());
+            match &plans[0] {
+                CharPlan::Direct(kp) => {
+                    assert_eq!(
+                        kp.group, 0,
+                        "{ascii:?} should fall back to the Latin group on {layouts}"
+                    )
+                }
+                other => panic!("expected Direct for {ascii:?} on {layouts}, got {other:?}"),
+            }
+            assert_eq!(replay(&idx, &ascii.to_string()), ascii.to_string());
+        }
     }
 
     #[test]

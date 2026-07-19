@@ -49,6 +49,38 @@ jobs:
       - run: cargo build --workspace
       - run: cargo test --workspace
 
+  # Real transports and a real model: daemon on headless sway typing into a
+  # client, XTEST under Xvfb across three layouts, whisper round trip with a
+  # cached tiny model (the only network use in CI; models never ship).
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev xkb-data libx11-data libasound2-dev sway wev xvfb x11-xkb-utils dbus
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/dictaforge
+          key: whisper-tiny-en
+      - name: fetch tiny model unless cached
+        run: |
+          mkdir -p ~/.cache/dictaforge
+          [ -f ~/.cache/dictaforge/ggml-tiny.en.bin ] || curl -sSfL -o ~/.cache/dictaforge/ggml-tiny.en.bin \
+            https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin
+      - run: cargo build -p dictaforged --tests
+      # timeout wrappers: a wedged compositor or bus must fail the step,
+      # not stall the job until the runner limit
+      - name: daemon full loop on headless sway
+        run: |
+          export XDG_RUNTIME_DIR=/tmp/xdgr && mkdir -m 700 -p "$XDG_RUNTIME_DIR"
+          timeout -k 5 120 dbus-run-session -- cargo test -p dictaforged --test inject_sway -- --ignored --nocapture
+      - name: stub daemon dbus round trip
+        run: timeout -k 5 120 dbus-run-session -- cargo test -p dictaforged --test dbus -- --ignored --nocapture
+      - name: xtest under xvfb (us, de, dvorak)
+        run: timeout -k 5 120 xvfb-run -a cargo test -p dictaforged -- --ignored --nocapture xtest
+      - name: stt with the cached tiny model
+        run: timeout -k 5 300 env DICTAFORGE_TEST_MODEL=$HOME/.cache/dictaforge/ggml-tiny.en.bin cargo test -p dictaforged -- --ignored --nocapture transcribes_jfk
+
   deny:
     runs-on: ubuntu-24.04
     steps:

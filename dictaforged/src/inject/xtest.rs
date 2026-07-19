@@ -397,5 +397,19 @@ mod tests {
         inj.probe().unwrap();
         inj.inject("zäöü").unwrap();
         assert_eq!(drain(&lc), "zäöü");
+        drop(inj);
+
+        // phase 3: dvorak, where every letter sits on a different keycode
+        assert!(
+            std::process::Command::new("setxkbmap")
+                .args(["us", "dvorak"])
+                .status()
+                .unwrap()
+                .success()
+        );
+        let mut inj = XtestInjector::new();
+        inj.probe().unwrap();
+        inj.inject("hello Dvorak!").unwrap();
+        assert_eq!(drain(&lc), "hello Dvorak!");
     }
 }
