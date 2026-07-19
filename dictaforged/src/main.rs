@@ -6,6 +6,8 @@ mod config;
 #[allow(dead_code, unused_imports)]
 mod dbus;
 #[allow(dead_code, unused_imports)]
+mod hotkey;
+#[allow(dead_code, unused_imports)]
 mod inject;
 #[allow(dead_code, unused_imports)]
 mod keymap;
@@ -56,6 +58,18 @@ fn main() {
         audio::normalize(&mut samples);
         audio::write_wav(std::path::Path::new(path), &samples).expect("write wav");
         eprintln!("wrote {} samples (16 kHz mono) to {path}", samples.len());
+        return;
+    }
+    // temporary manual-acceptance flag, removed in Task 10 when the daemon
+    // wires the listener to the pipeline
+    if let ["--hotkey-test", chord] = &args.iter().map(String::as_str).collect::<Vec<_>>()[..] {
+        let chord = hotkey::Chord::parse(chord).expect("chord parses");
+        let (tx, rx) = std::sync::mpsc::channel();
+        let n = hotkey::spawn(chord, tx).expect("keyboards found");
+        eprintln!("watching {n} keyboard(s), press the chord (ctrl+c to quit)");
+        for event in rx {
+            eprintln!("{event:?}");
+        }
         return;
     }
     // Serve the D-Bus API over the stub pipeline: no audio, no injection,

@@ -9,6 +9,7 @@ license.workspace = true
 anyhow = "1.0.103"
 audioadapter-buffers = "4.0.0"
 cpal = "0.18.1"
+evdev = "0.13.2"
 input-linux = "0.7.1"
 rubato = "4.0.0"
 serde = { version = "1.0.229", features = ["derive"] }
