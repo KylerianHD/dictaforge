@@ -39,15 +39,24 @@ impl SttEngine {
         let mut params =
             whisper_rs::FullParams::new(whisper_rs::SamplingStrategy::Greedy { best_of: 1 });
         params.set_no_context(true);
+        // default is 4 threads; use what the machine has (latency bar, Task 11)
+        params.set_n_threads(std::thread::available_parallelism().map_or(4, |n| n.get() as i32));
         params.set_language(lang.or(Some("auto")));
         params.set_print_special(false);
         params.set_print_progress(false);
         params.set_print_realtime(false);
         params.set_print_timestamps(false);
+        params.set_suppress_nst(true);
         self.state.full(params, pcm16k)?;
         let mut text = String::new();
         for segment in self.state.as_iter() {
-            text.push_str(&segment.to_str_lossy()?);
+            let seg = segment.to_str_lossy()?.into_owned();
+            // annotations like [BLANK_AUDIO] still slip past suppress_nst
+            // on silence-only segments; never type them
+            if seg.trim().starts_with('[') && seg.trim().ends_with(']') {
+                continue;
+            }
+            text.push_str(&seg);
         }
         Ok(text.trim().to_string())
     }

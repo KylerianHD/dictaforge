@@ -11,6 +11,8 @@ audioadapter-buffers = "4.0.0"
 cpal = "0.18.1"
 evdev = "0.13.2"
 input-linux = "0.7.1"
+ksni = { version = "0.3.6", default-features = false, features = ["async-io", "blocking"] }
+notify-rust = "4.18.0"
 rubato = "4.0.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.150"

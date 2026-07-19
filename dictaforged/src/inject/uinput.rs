@@ -38,6 +38,7 @@ impl UinputInjector {
 }
 
 impl<S: EventSink> UinputInjector<S> {
+    #[cfg(test)]
     fn with_sink(index: KeymapIndex, sink: S) -> Self {
         UinputInjector { index, sink }
     }
@@ -86,6 +87,9 @@ impl<S: EventSink> Injector for UinputInjector<S> {
         self.sink.ready()?;
         for (mods, key) in &chords {
             emit_chord(&mut self.sink, mods, *key).map_err(InjectError::Io)?;
+            // unpaced events flood the compositor and keystrokes get lost
+            // (seen on KWin with sentence-length strings)
+            std::thread::sleep(std::time::Duration::from_millis(10));
         }
         Ok(())
     }

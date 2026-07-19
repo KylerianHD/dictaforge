@@ -8,7 +8,11 @@ use super::{CharPlan, KeyPlan, LayoutSpec};
 
 /// Reverse keymap: char -> key plan, built once per layout.
 pub struct KeymapIndex {
+    // both only read by the round-trip test harness, which replays plans
+    // through a fresh xkb state
+    #[cfg_attr(not(test), allow(dead_code))]
     keymap: xkb::Keymap,
+    #[cfg_attr(not(test), allow(dead_code))]
     compose: Option<compose::Table>,
     plans: HashMap<char, CharPlan>,
     group: u32,
