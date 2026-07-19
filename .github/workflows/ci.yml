@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev
+      - run: cargo fmt --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu-x86_64
+            os: ubuntu-24.04
+          # free arm runners require a public repo; re-enable if this goes public
+          # - name: ubuntu-aarch64
+          #   os: ubuntu-24.04-arm
+          - name: arch
+            os: ubuntu-24.04
+            container: archlinux:latest
+          - name: fedora
+            os: ubuntu-24.04
+            container: fedora:latest
+    name: test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v4
+      # xkbcommon links libxkbcommon; keymap tests need xkeyboard-config
+      # data and the X11 Compose files at runtime
+      - if: matrix.container == ''
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev xkb-data libx11-data libasound2-dev
+      - if: matrix.container == 'archlinux:latest'
+        run: pacman -Syu --noconfirm rust gcc libxkbcommon libxkbcommon-x11 libxcb xkeyboard-config libx11 alsa-lib pkgconf cmake make clang
+      - if: matrix.container == 'fedora:latest'
+        run: dnf install -y rust cargo gcc libxkbcommon-devel libxkbcommon-x11-devel libxcb-devel xkeyboard-config libX11-common alsa-lib-devel cmake gcc-c++ make clang-devel
+      - run: cargo build --workspace
+      - run: cargo test --workspace
+
+  # Real transports and a real model: daemon on headless sway typing into a
+  # client, XTEST under Xvfb across three layouts, whisper round trip with a
+  # cached tiny model (the only network use in CI; models never ship).
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev xkb-data libx11-data libasound2-dev sway wev xvfb x11-xkb-utils dbus
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/dictaforge
+          key: whisper-tiny-en
+      - name: fetch tiny model unless cached
+        run: |
+          mkdir -p ~/.cache/dictaforge
+          [ -f ~/.cache/dictaforge/ggml-tiny.en.bin ] || curl -sSfL -o ~/.cache/dictaforge/ggml-tiny.en.bin \
+            https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin
+      - run: cargo build -p dictaforged --tests
+      # timeout wrappers: a wedged compositor or bus must fail the step,
+      # not stall the job until the runner limit
+      - name: daemon full loop on headless sway
+        run: |
+          export XDG_RUNTIME_DIR=/tmp/xdgr && mkdir -m 700 -p "$XDG_RUNTIME_DIR"
+          timeout -k 5 120 dbus-run-session -- cargo test -p dictaforged --test inject_sway -- --ignored --nocapture
+      - name: stub daemon dbus round trip
+        run: timeout -k 5 120 dbus-run-session -- cargo test -p dictaforged --test dbus -- --ignored --nocapture
+      - name: xtest under xvfb (us, de, dvorak)
+        run: timeout -k 5 120 xvfb-run -a cargo test -p dictaforged -- --ignored --nocapture xtest
+      - name: stt with the cached tiny model
+        run: timeout -k 5 300 env DICTAFORGE_TEST_MODEL=$HOME/.cache/dictaforge/ggml-tiny.en.bin cargo test -p dictaforged -- --ignored --nocapture transcribes_jfk
+
+  deny:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+  # Privacy bar: no networking crates may link into the default build.
+  # Network access is only allowed behind the byok feature flag.
+  privacy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          hits=$(cargo tree --workspace --edges normal --prefix none | sort -u \
+            | grep -Ei '^(reqwest|hyper|ureq|isahc|curl|attohttpc|surf|tokio-tungstenite) ' || true)
+          if [ -n "$hits" ]; then
+            echo "networking crates in the default build:"
+            echo "$hits"
+            exit 1
+          fi

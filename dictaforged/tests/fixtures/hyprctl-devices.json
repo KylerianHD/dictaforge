@@ -1,0 +1,40 @@
+{
+  "mice": [
+    {
+      "address": "0x559ac1f2d3a0",
+      "name": "logitech-usb-receiver-mouse",
+      "defaultSpeed": 0.0
+    }
+  ],
+  "keyboards": [
+    {
+      "address": "0x559ac1f4b8c0",
+      "name": "logitech-usb-receiver",
+      "rules": "",
+      "model": "pc105",
+      "layout": "us,de",
+      "variant": ",nodeadkeys",
+      "options": "grp:alt_shift_toggle",
+      "active_keymap": "German (no dead keys)",
+      "capsLock": false,
+      "numLock": true,
+      "main": false
+    },
+    {
+      "address": "0x559ac1f3e6f0",
+      "name": "at-translated-set-2-keyboard",
+      "rules": "",
+      "model": "pc105",
+      "layout": "us,de",
+      "variant": ",nodeadkeys",
+      "options": "grp:alt_shift_toggle",
+      "active_keymap": "German (no dead keys)",
+      "capsLock": false,
+      "numLock": true,
+      "main": true
+    }
+  ],
+  "tablets": [],
+  "touch": [],
+  "switches": []
+}
