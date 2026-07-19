@@ -12,14 +12,14 @@
 - [x] ADRs 001-007 written, GUI toolkit evaluated and decided (ADR 008: GTK4 + libadwaita)
 
 ## M1: Vertical slice (MVP)
-- [ ] Audio capture via cpal, PipeWire first, 16 kHz mono resample
-- [ ] Hotkeys: push-to-talk and toggle (portal GlobalShortcuts, compositor keybind docs, evdev fallback, XGrabKey)
-- [ ] whisper.cpp transcription (whisper-rs) with model download helper
-- [ ] Injector trait with runtime probing: virtual-keyboard (wlroots), fake_input (KDE), portal RemoteDesktop + libei, XTEST remap, uinput + xkbcommon reverse keymap
-- [ ] Reverse keymap proven on QWERTZ and Dvorak (property tests)
-- [ ] Verified end to end on Hyprland, KDE Plasma Wayland, and X11
-- [ ] Tray icon (StatusNotifierItem), TOML config file
-- [ ] Tag v0.1.0
+- [x] Audio capture via cpal, PipeWire first, 16 kHz mono resample
+- [x] Hotkeys: push-to-talk and toggle (evdev tier; portal GlobalShortcuts and compositor keybinds follow per ADR 006)
+- [x] whisper.cpp transcription (whisper-rs); model download helper lands with the M2 first-run wizard, until then config points at a model file
+- [x] Injector trait with runtime probing: virtual-keyboard (wlroots), XTEST remap, uinput + xkbcommon reverse keymap (fake_input and portal + libei deferred per ADR 003, uinput covers KDE)
+- [x] Reverse keymap proven on QWERTZ and Dvorak (round-trip matrix over 21 layouts incl. non-Latin groups)
+- [x] Verified end to end on KDE Plasma Wayland (spoken acceptance), wlroots via headless sway in CI (Hyprland stand-in), and X11 under Xvfb
+- [x] Tray icon (StatusNotifierItem), TOML config file
+- [x] Tag v0.1.0
 
 ## M2: Cleanup and UX
 - [ ] Local LLM cleanup via llama.cpp: Off / Light / Full
