@@ -38,6 +38,7 @@ impl UinputInjector {
 }
 
 impl<S: EventSink> UinputInjector<S> {
+    #[cfg(test)]
     fn with_sink(index: KeymapIndex, sink: S) -> Self {
         UinputInjector { index, sink }
     }

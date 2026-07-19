@@ -138,6 +138,15 @@ impl RecordingHandle {
     }
 }
 
+/// Names of the available input devices, for the mic-unavailable
+/// notification.
+pub fn input_devices() -> Vec<String> {
+    cpal::default_host()
+        .input_devices()
+        .map(|devices| devices.map(|d| d.to_string()).collect())
+        .unwrap_or_default()
+}
+
 /// Write 16 kHz mono f32 as a 16-bit PCM WAV. Debug aid for --dump-wav,
 /// kept forever for support.
 pub fn write_wav(path: &std::path::Path, samples: &[f32]) -> std::io::Result<()> {
