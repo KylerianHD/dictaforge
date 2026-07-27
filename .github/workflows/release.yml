@@ -1,0 +1,62 @@
+name: release
+
+# Tarballs only. Distro packaging (AUR, AppImage, deb, rpm, Nix) is M4.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: existing tag to build and attach artifacts to
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  tarball:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            os: ubuntu-24.04
+          - arch: aarch64
+            os: ubuntu-24.04-arm
+    name: tarball (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev xkb-data libx11-data libasound2-dev
+      - run: cargo build --release --workspace
+
+      - name: package
+        run: |
+          set -eu
+          dir="dictaforge-$TAG-linux-${{ matrix.arch }}"
+          mkdir "$dir"
+          # ponytail: the dictaforge GUI is still a stub, add it here once
+          # M2 Task 4 makes it a real binary
+          for bin in dictaforged dictaforge-cli; do
+            cp "target/release/$bin" "$dir/"
+            strip "$dir/$bin"
+          done
+          cp LICENSE README.md CHANGELOG.md "$dir/"
+          tar czf "$dir.tar.gz" "$dir"
+          sha256sum "$dir.tar.gz" > "$dir.tar.gz.sha256"
+
+      - name: attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          # ponytail: both matrix jobs race to create the release, whichever
+          # loses just uploads to the one that won
+          gh release create "$TAG" --title "$TAG" --generate-notes || true
+          gh release upload "$TAG" \
+            "dictaforge-$TAG-linux-${{ matrix.arch }}.tar.gz" \
+            "dictaforge-$TAG-linux-${{ matrix.arch }}.tar.gz.sha256" --clobber
