@@ -3,17 +3,26 @@
 Live task list. ROADMAP.md holds the milestone view.
 
 ## Next step (waiting for go)
-- [ ] M2 planning session: milestone plan for cleanup LLM, VAD hands-free, overlay, settings GUI + first-run wizard (model download helper), model manager. Also decide: repo public + rulesets + re-enable aarch64 CI (was planned at v0.1.0), release artifact workflow on tags (backlog note below)
+- [ ] M2 Task 0: go public. Pre-flight history sweep, flip visibility, apply the prepared rulesets, re-enable the aarch64 CI job, add a release-artifact workflow on tags
+
+## M2 tasks
+1. [ ] Recording overlay (layer-shell client on a new daemon StateChanged signal)
+2. [ ] Persistent audio stream + VAD hands-free mode (also kills the 300 ms release grace)
+3. [ ] Model catalog and download helper (curl subprocess, no HTTP crate; ADR 009)
+4. [ ] Settings window and first-run wizard (GTK4 + libadwaita)
+5. [ ] Cleanup layer: Off / Light heuristics / Full via llama.cpp behind a feature flag
+6. [ ] QA, idle RSS measurement, README rewrite, tag v0.2.0
 
 ## Decided
 - [x] Name: DictaForge (2026-07-13). Verified clean: crates.io free, AUR free, no web presence, one dormant unrelated 0-star GitHub repo. VoxForge rejected (voxforge.org, same-domain FOSS project), VoxSmith rejected (crates.io taken by active voxel crate, domains gone). Binaries: dictaforge (GUI), dictaforged (daemon), dictaforge-cli. Rename lands as M1 Task 0.
 
 ## Backlog notes
-- [ ] Release workflow (artifacts on tag): deliberately not shipped with v0.1.0 (repo still private, no consumers); revisit when the repo goes public
+- [ ] Release workflow (artifacts on tag): not shipped with v0.1.0 (repo was private, no consumers); lands with M2 Task 0 now that public is decided
 - [x] Headless sway/Xvfb injection tests in CI landed with M1 Task 11 (PR #12)
 - [ ] Replace the short code of conduct with Contributor Covenant if the community grows
 
 ## Done
+- [x] 2026-07-27: M2 planning session. Seven tasks (0-6), local plan file. Three decisions taken: repo goes public now (unblocks rulesets, aarch64 CI, release artifacts, all folded into Task 0); build order is UX first and LLM last, so the heaviest dependency can slip without blocking v0.2.0; cleanup Light is pure Rust heuristics with the LLM behind it as Full, per ADR 007's own fallback clause. Architecture calls: overlay and model downloads live in the GUI process so the daemon keeps zero GUI and zero network dependencies (ADR 002), downloads shell out to curl instead of linking an HTTP client (new ADR 009, written in Task 3), CleanupEngine is infallible and falls back to Light rather than ever losing a transcript
 - [x] 2026-07-19: M1 Task 11: QA matrix, CI integration jobs, latency, v0.1.0 (PR #12, squash ad7f440). Round-trip matrix over 21 layouts (17 Latin table-driven + us,ru/ua/gr/il group fallback tests). Latency root cause fixed: whisper ran its encoder over the full padded 30 s window; audio_ctx now capped at the take length (50 states/s + headroom, floor 128), 10 s utterance 1.45-1.63 s with small on 4 threads (was ~20 s), numbers in docs/research/latency-m1.md, reproduce with scripts/latency.sh; large-v3-turbo needs GPU offload (M2+). New CI integration job: daemon full loop on headless sway typing into wev over D-Bus (findings: sway ignores WAYLAND_DISPLAY for its own socket, wev block-buffers on pipes, WLR_RENDERER=pixman required on GPU-less runners), stub dbus round trip, xvfb xtest with a new dvorak phase (closes both Task 10 carry-over checks), cached-tiny-model STT. Release: dev -> main, tag v0.1.0
 - [x] 2026-07-19: M1 Task 10: daemon assembly merged (PR #11, squash 37b94d2, CI 6/6 both pushes). Single event loop owns the pipeline; hotkey (mode-aware push-to-talk/toggle), D-Bus, and ksni tray all feed one command channel, no locking. InjectorManager::pick probes virtual_keyboard, xtest on X11, uinput, honors backend_override; errors are desktop notifications (mic + device list, model + path, backend + permission hints). Removed --inject-test*, --hotkey-test. 9 state machine unit tests over the stub pipeline. Spoken acceptance on KDE Wayland QWERTZ via uinput passed after fixing four defects it caught: unpaced uinput events lost keystrokes on KWin (10 ms per chord), audio tail cut at hotkey release (300 ms grace + trailing silence), whisper stuck on 4 threads, [BLANK_AUDIO] annotations typed into the text (suppress_nst + bracket filter). X11 Dvorak and sway-substitute checks deferred to the Task 11 CI jobs
 - [x] 2026-07-19: M1 Task 9: evdev hotkey listener merged (PR #10, squash fdf8133, CI 6/6 first try). Chord::parse (ctrl/alt/shift/super + any evdev key name, case-insensitive) and a pure Matcher state machine: order-independent modifiers, left or right variant both count, autorepeat suppressed, partial chords silent, non-chord keys dropped on arrival and never stored or logged (ADR 006), other keys do not break an active chord. spawn() scans /dev/input keyboards without grabbing, one reader thread each; zero keyboards errors with the input-group hint. 11 pure tests plus an ignored end-to-end test typing the chord on a uinput virtual keyboard through the kernel (0.9 s). Temporary --hotkey-test flag until Task 10
