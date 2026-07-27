@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev libgtk-4-dev
       - run: cargo fmt --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
 
@@ -40,11 +40,11 @@ jobs:
       # xkbcommon links libxkbcommon; keymap tests need xkeyboard-config
       # data and the X11 Compose files at runtime
       - if: matrix.container == ''
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev xkb-data libx11-data libasound2-dev
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev xkb-data libx11-data libasound2-dev libgtk-4-dev
       - if: matrix.container == 'archlinux:latest'
-        run: pacman -Syu --noconfirm rust gcc libxkbcommon libxkbcommon-x11 libxcb xkeyboard-config libx11 alsa-lib pkgconf cmake make clang
+        run: pacman -Syu --noconfirm rust gcc libxkbcommon libxkbcommon-x11 libxcb xkeyboard-config libx11 alsa-lib pkgconf cmake make clang gtk4
       - if: matrix.container == 'fedora:latest'
-        run: dnf install -y rust cargo gcc libxkbcommon-devel libxkbcommon-x11-devel libxcb-devel xkeyboard-config libX11-common alsa-lib-devel cmake gcc-c++ make clang-devel
+        run: dnf install -y rust cargo gcc libxkbcommon-devel libxkbcommon-x11-devel libxcb-devel xkeyboard-config libX11-common alsa-lib-devel cmake gcc-c++ make clang-devel gtk4-devel
       - run: cargo build --workspace
       - run: cargo test --workspace
 

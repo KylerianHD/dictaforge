@@ -4,3 +4,11 @@ description = "Settings GUI, history, and first-run wizard"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+
+[dependencies]
+# async-channel rides in with zbus already; it is what gtk4-rs pairs with
+# glib::spawn_future_local, so the bus-to-UI handoff costs no new dependency
+async-channel = "2.5.0"
+gtk4 = "0.11.4"
+serde_json = "1.0.150"
+zbus = "5.18.0"
