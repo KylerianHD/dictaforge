@@ -3,11 +3,11 @@
 Live task list. ROADMAP.md holds the milestone view.
 
 ## Next step (waiting for go)
-- [ ] M2 Task 1: recording overlay (layer-shell client on a new daemon StateChanged signal)
+- [ ] M2 Task 2: persistent audio stream + VAD hands-free mode (also kills the 300 ms release grace)
 
 ## M2 tasks
 0. [x] Go public, rulesets, aarch64 CI, release artifacts
-1. [ ] Recording overlay (layer-shell client on a new daemon StateChanged signal)
+1. [x] Recording overlay (client on a new daemon StateChanged signal)
 2. [ ] Persistent audio stream + VAD hands-free mode (also kills the 300 ms release grace)
 3. [ ] Model catalog and download helper (curl subprocess, no HTTP crate; ADR 009)
 4. [ ] Settings window and first-run wizard (GTK4 + libadwaita)
@@ -20,9 +20,12 @@ Live task list. ROADMAP.md holds the milestone view.
 ## Backlog notes
 - [ ] Release workflow (artifacts on tag): not shipped with v0.1.0 (repo was private, no consumers); lands with M2 Task 0 now that public is decided
 - [x] Headless sway/Xvfb injection tests in CI landed with M1 Task 11 (PR #12)
+- [ ] Overlay on wlroots still uses a plain window, not layer-shell: Ubuntu 24.04 packages only the GTK3 gtk-layer-shell, Arch and Fedora have gtk4-layer-shell. Add it behind an optional cargo feature so Ubuntu CI keeps building
+- [ ] Overlay autostart (.desktop) deferred to the Task 4 wizard, along with the daemon's
 - [ ] Replace the short code of conduct with Contributor Covenant if the community grows
 
 ## Done
+- [x] 2026-07-27: M2 Task 1: recording overlay (PR #17, squash ac09ea3, CI 8/8 after one deny fix). Daemon emits StateChanged from set_state, the single funnel every transition already went through, so tray and bus cannot drift; emitted via blocking Connection::emit_signal rather than the generated async fn, which would need zbus's doc(hidden) block_on, and declared with #[zbus(signal)] anyway so introspection advertises it. Overlay is a separate `dictaforge --overlay` GTK4 process (ADR 002: daemon links no GUI, a GTK crash cannot stop dictation), reads Status() once at startup so a late start is not wrong about a recording in progress, and reconnects on its own when the daemon restarts. Verified on headless sway with the real binaries: idle 0 windows, recording 1, after stop 0, and after killing and restarting the daemon it reconnects and still shows. Findings: two tests in tests/dbus.rs both spawn a daemon claiming the same well-known name, so they fought each other until serialized behind a mutex in the test file rather than a --test-threads=1 flag nobody remembers; CssProvider::load_from_string is gated behind the v4_12 feature so load_from_data keeps the minimum GTK low; gtk4 entering the workspace means every CI job and release.yml needed a GTK dev package; target-lexicon is "Apache-2.0 WITH LLVM-exception", a distinct SPDX expression from plain Apache-2.0, so deny.toml needed it added
 - [x] 2026-07-27: M2 Task 0: repo is public (PR #15, squash 6aba873). Pre-flight sweep clean: CLAUDE.md and .claude never committed, no em dashes or machine paths or AI attribution in history, no secrets, all commits authored under the GitHub noreply address. aarch64 CI job re-enabled and green first try, CI is 8 checks now. New release.yml builds stripped x86_64 and aarch64 tarballs on v* tags (binaries + LICENSE + README + CHANGELOG, sha256 beside each), proven by dispatching it against the existing v0.1.0 tag: both arches built, checksums verified, binary runs. Both rulesets applied server-side, so dev now requires all 8 checks and main and dev reject force push and deletion, admins included. Direct pushes to dev are over, docs go through PRs like everything else. README no longer claims nothing is usable
 - [x] 2026-07-27: M2 planning session. Seven tasks (0-6), local plan file. Three decisions taken: repo goes public now (unblocks rulesets, aarch64 CI, release artifacts, all folded into Task 0); build order is UX first and LLM last, so the heaviest dependency can slip without blocking v0.2.0; cleanup Light is pure Rust heuristics with the LLM behind it as Full, per ADR 007's own fallback clause. Architecture calls: overlay and model downloads live in the GUI process so the daemon keeps zero GUI and zero network dependencies (ADR 002), downloads shell out to curl instead of linking an HTTP client (new ADR 009, written in Task 3), CleanupEngine is infallible and falls back to Light rather than ever losing a transcript
 - [x] 2026-07-19: M1 Task 11: QA matrix, CI integration jobs, latency, v0.1.0 (PR #12, squash ad7f440). Round-trip matrix over 21 layouts (17 Latin table-driven + us,ru/ua/gr/il group fallback tests). Latency root cause fixed: whisper ran its encoder over the full padded 30 s window; audio_ctx now capped at the take length (50 states/s + headroom, floor 128), 10 s utterance 1.45-1.63 s with small on 4 threads (was ~20 s), numbers in docs/research/latency-m1.md, reproduce with scripts/latency.sh; large-v3-turbo needs GPU offload (M2+). New CI integration job: daemon full loop on headless sway typing into wev over D-Bus (findings: sway ignores WAYLAND_DISPLAY for its own socket, wev block-buffers on pipes, WLR_RENDERER=pixman required on GPU-less runners), stub dbus round trip, xvfb xtest with a new dvorak phase (closes both Task 10 carry-over checks), cached-tiny-model STT. Release: dev -> main, tag v0.1.0
