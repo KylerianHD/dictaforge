@@ -156,6 +156,9 @@ pub struct Daemon {
     pipeline: Pipeline,
     state: State,
     tray: Option<ksni::blocking::Handle<crate::tray::Tray>>,
+    /// Set once the bus name is claimed; None in unit tests, which stay
+    /// bus-free.
+    conn: Option<zbus::blocking::Connection>,
 }
 
 impl Daemon {
@@ -165,6 +168,7 @@ impl Daemon {
             pipeline,
             state: State::Idle,
             tray: None,
+            conn: None,
         }
     }
 
@@ -252,10 +256,15 @@ impl Daemon {
         self.set_state(State::Idle);
     }
 
+    /// The one funnel for state changes, so the tray and every D-Bus listener
+    /// cannot drift apart from the real state.
     fn set_state(&mut self, state: State) {
         self.state = state;
         if let Some(tray) = &self.tray {
             tray.update(|t| t.state = state);
+        }
+        if let Some(conn) = &self.conn {
+            crate::dbus::emit_state(conn, state.name());
         }
     }
 
@@ -317,7 +326,8 @@ pub fn run(cfg: Config, pipeline: Pipeline, hardware: bool) -> anyhow::Result<()
         }
     }
 
-    let _conn = crate::dbus::serve(tx)?;
+    let conn = crate::dbus::serve(tx)?;
+    daemon.conn = Some(conn.clone());
     while daemon.handle(rx.recv()?) {}
     Ok(())
 }

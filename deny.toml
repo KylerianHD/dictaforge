@@ -10,6 +10,10 @@ allow = [
     "Unicode-3.0",
     # public-domain equivalent (whisper-rs)
     "Unlicense",
+    # the exception only widens Apache-2.0, so this is strictly more
+    # permissive; target-lexicon pulls it in at build time under the gtk4
+    # -sys crates via system-deps
+    "Apache-2.0 WITH LLVM-exception",
 ]
 
 [advisories]

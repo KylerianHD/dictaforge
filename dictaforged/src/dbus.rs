@@ -40,12 +40,36 @@ impl Api {
             let _ = rx.recv();
         }
     }
+
+    /// Every state transition: idle, recording, transcribing, injecting.
+    /// Declared here so introspection advertises it; see `emit_state` for why
+    /// nothing calls this generated function.
+    #[zbus(signal)]
+    async fn state_changed(
+        emitter: &zbus::object_server::SignalEmitter<'_>,
+        state: &str,
+    ) -> zbus::Result<()>;
 }
+
+pub const PATH: &str = "/org/dictaforge/Daemon1";
+pub const IFACE: &str = "org.dictaforge.Daemon1";
 
 /// Claim the well-known name; the returned connection serves until dropped.
 pub fn serve(tx: Sender<Cmd>) -> anyhow::Result<zbus::blocking::Connection> {
     Ok(zbus::blocking::connection::Builder::session()?
-        .name("org.dictaforge.Daemon1")?
-        .serve_at("/org/dictaforge/Daemon1", Api { tx })?
+        .name(IFACE)?
+        .serve_at(PATH, Api { tx })?
         .build()?)
+}
+
+/// Broadcast a state transition to whoever is listening, typically the
+/// overlay. Best effort: nobody listening, or a bus hiccup, must never
+/// interrupt dictation.
+///
+// ponytail: emitted through the connection rather than the generated
+// Api::state_changed, because that one is async and reaching it from the
+// blocking event loop needs zbus's doc(hidden) block_on. This is the same
+// message on the wire.
+pub fn emit_state(conn: &zbus::blocking::Connection, state: &str) {
+    let _ = conn.emit_signal(None::<&str>, PATH, IFACE, "StateChanged", &(state,));
 }
