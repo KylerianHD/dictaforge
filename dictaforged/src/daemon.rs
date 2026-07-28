@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
-use crate::audio::{self, RecordingHandle};
+use crate::audio::{self, Mark, Tap};
 use crate::config::{Config, Mode};
 use crate::hotkey::HotkeyEvent;
 use crate::inject::Injector;
@@ -60,7 +60,24 @@ pub struct Real {
     injector: Box<dyn Injector>,
     // ponytail: lazy so a missing model only bites when dictation is used
     stt: Option<SttEngine>,
-    recording: Option<RecordingHandle>,
+    /// Held open for the daemon's lifetime once opened, so audio is already
+    /// flowing when an utterance starts.
+    stream: Option<audio::Stream>,
+    /// Where the current utterance began; None when not recording.
+    mark: Option<Mark>,
+}
+
+impl Real {
+    /// Open the microphone if it is not open yet and hand out a reader.
+    fn tap(&mut self) -> anyhow::Result<Tap> {
+        let stream = match &self.stream {
+            Some(stream) => stream,
+            None => self
+                .stream
+                .insert(audio::Stream::open(self.audio_device.as_deref())?),
+        };
+        Ok(stream.tap())
+    }
 }
 
 impl Pipeline {
@@ -79,8 +96,18 @@ impl Pipeline {
             layout,
             injector,
             stt: None,
-            recording: None,
+            stream: None,
+            mark: None,
         }))
+    }
+
+    /// Open the microphone early (and hand the hands-free watcher its reader).
+    /// Stub has no microphone and needs none.
+    fn tap(&mut self) -> anyhow::Result<Option<Tap>> {
+        match self {
+            Pipeline::Stub { .. } => Ok(None),
+            Pipeline::Real(r) => r.tap().map(Some),
+        }
     }
 
     fn backend(&self) -> &str {
@@ -94,7 +121,7 @@ impl Pipeline {
         match self {
             Pipeline::Stub { .. } => Ok(()),
             Pipeline::Real(r) => {
-                r.recording = Some(audio::Recorder::start(r.audio_device.as_deref())?);
+                r.mark = Some(r.tap()?.mark());
                 Ok(())
             }
         }
@@ -105,16 +132,13 @@ impl Pipeline {
             // one fake second so the too-short guard does not kick in
             Pipeline::Stub { .. } => Ok(vec![0.05; audio::TARGET_RATE as usize]),
             Pipeline::Real(r) => {
-                // ponytail: grace period so frames still in flight at hotkey
-                // release arrive; a persistent stream is the M2 fix if this
-                // is not enough
-                std::thread::sleep(std::time::Duration::from_millis(300));
-                let handle = r
-                    .recording
+                // no grace period: the stream never stopped, so the take is
+                // already sitting in the ring
+                let mark = r
+                    .mark
                     .take()
                     .ok_or_else(|| anyhow::anyhow!("not recording"))?;
-                let mut pcm = handle.stop()?;
-                audio::normalize(&mut pcm);
+                let mut pcm = r.tap()?.take_since(mark)?;
                 // trailing silence keeps whisper from dropping a final word
                 // that was cut off mid-breath
                 pcm.extend(std::iter::repeat_n(0.0, audio::TARGET_RATE as usize / 2));
@@ -177,7 +201,9 @@ impl Daemon {
         match cmd {
             Cmd::Hotkey(HotkeyEvent::Pressed) => match self.cfg.mode {
                 Mode::PushToTalk => self.begin(),
-                Mode::Toggle => self.toggle(),
+                // hands-free keeps the hotkey as a manual override, so the
+                // user can cut in when the endpointer is being shy
+                Mode::Toggle | Mode::HandsFree => self.toggle(),
             },
             Cmd::Hotkey(HotkeyEvent::Released) => {
                 if self.cfg.mode == Mode::PushToTalk {
@@ -304,6 +330,21 @@ pub fn run(cfg: Config, pipeline: Pipeline, hardware: bool) -> anyhow::Result<()
     let mut daemon = Daemon::new(cfg, pipeline);
 
     if hardware {
+        // opened before the first utterance rather than during it: this is
+        // what removes the cold-start syllable loss and the release grace
+        match daemon.pipeline.tap() {
+            Ok(Some(tap)) if daemon.cfg.mode == Mode::HandsFree => crate::vad::spawn(
+                tap,
+                daemon.cfg.vad_silence_ms,
+                daemon.cfg.vad_max_utterance_s,
+                tx.clone(),
+            ),
+            Ok(_) => {}
+            // dictation still works if the microphone shows up later; begin()
+            // retries the open
+            Err(e) => notify("Microphone unavailable", &e.to_string()),
+        }
+
         let chord = crate::hotkey::Chord::parse(&daemon.cfg.hotkey)?;
         let (htx, hrx) = std::sync::mpsc::channel();
         match crate::hotkey::spawn(chord, htx) {

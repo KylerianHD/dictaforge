@@ -43,14 +43,39 @@ not fit 4 CPU cores; it needs GPU offload (M2+ scope) or a bigger machine.
 
 Hotkey release to injected text is transcription plus two fixed costs:
 
-- 300 ms release grace (audio frames still in flight at release; see
-  `stop_recording` in daemon.rs). Counted against the bar: small/4 lands
-  around 1.8-1.9 s end to end; on the actual 20-core machine ~1.55 s.
-  Shrinking the grace (or replacing it with a persistent stream) is the
-  next lever if the bar must hold strictly.
+- ~~300 ms release grace~~ removed in M2 Task 2, see below.
 - uinput typing pace, 10 ms per chord (KWin drops events when flooded):
   a 100-char transcript takes ~1 s to type, but that is visible progress
   on screen, not dead waiting, so it is not counted against the bar.
+
+## M2 update, 2026-07-28: the grace is gone
+
+The 300 ms grace existed because the capture stream started cold at hotkey
+press and was dropped at release, so whatever the device had not delivered
+yet was lost. M2 Task 2 replaced it with a stream held open for the
+daemon's lifetime writing into a ring buffer: `stop_recording` now reads
+what is already there instead of waiting for it. Residual tail loss is one
+cpal buffer period, tens of milliseconds, and the take still ends with the
+half second of appended silence whisper likes.
+
+Re-measured on the same machine and method after the rework, and the
+transcription path itself is untouched, so the numbers only confirm no
+regression:
+
+| Model          | Threads | Transcription  |
+|----------------|---------|----------------|
+| tiny.en        | 4       | 0.32-0.33 s    |
+| small          | 4       | **1.38-1.41 s** |
+| large-v3-turbo | 4       | 5.94-5.96 s    |
+
+**small on 4 threads is now under the 1.5 s bar end to end**, 1.4 s rather
+than the 1.7-1.9 s of M1, because the only fixed cost left is negligible.
+That is the first time the bar holds without an asterisk. turbo still needs
+GPU offload.
+
+The same rework also fixed the opposite end: `Tap::mark` reaches 300 ms
+backwards into the ring, so the syllable spoken while the hotkey was still
+travelling is in the take rather than lost.
 
 ## Method notes
 
