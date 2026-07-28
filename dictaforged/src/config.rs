@@ -17,6 +17,11 @@ pub struct Config {
     pub backend_override: Option<String>,
     pub audio_device: Option<String>,
     pub layout_override: Option<LayoutSpec>,
+    /// Hands-free only: how much quiet ends an utterance.
+    pub vad_silence_ms: u64,
+    /// Hands-free only: hard stop, so a stuck endpointer cannot record until
+    /// the disk fills.
+    pub vad_max_utterance_s: u64,
 }
 
 #[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
@@ -24,6 +29,8 @@ pub struct Config {
 pub enum Mode {
     PushToTalk,
     Toggle,
+    /// No hotkey: the endpointer decides when an utterance starts and ends.
+    HandsFree,
 }
 
 impl Default for Config {
@@ -36,6 +43,8 @@ impl Default for Config {
             backend_override: None,
             audio_device: None,
             layout_override: None,
+            vad_silence_ms: 700,
+            vad_max_utterance_s: 60,
         }
     }
 }
@@ -84,6 +93,8 @@ mod tests {
                 options: None,
                 group: 0,
             }),
+            vad_silence_ms: 900,
+            vad_max_utterance_s: 30,
         };
         let text = toml::to_string(&cfg).unwrap();
         assert_eq!(toml::from_str::<Config>(&text).unwrap(), cfg);

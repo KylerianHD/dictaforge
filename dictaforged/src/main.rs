@@ -7,6 +7,7 @@ mod inject;
 mod keymap;
 mod stt;
 mod tray;
+mod vad;
 
 /// Notify (so the failure is visible outside the terminal) and exit.
 fn fatal(summary: &str, body: &str) -> ! {
@@ -20,11 +21,12 @@ fn main() {
         // debug aid, kept permanently: record 5 s from the default mic and
         // dump the normalized 16 kHz mono take as a wav for listening
         ["--dump-wav", path] => {
-            let handle = audio::Recorder::start(None).expect("audio capture");
+            let stream = audio::Stream::open(None).expect("audio capture");
+            let tap = stream.tap();
+            let mark = tap.now();
             eprintln!("recording 5 s, speak now");
             std::thread::sleep(std::time::Duration::from_secs(5));
-            let mut samples = handle.stop().expect("resample");
-            audio::normalize(&mut samples);
+            let samples = tap.take_since(mark).expect("resample");
             audio::write_wav(std::path::Path::new(path), &samples).expect("write wav");
             eprintln!("wrote {} samples (16 kHz mono) to {path}", samples.len());
         }

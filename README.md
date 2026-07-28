@@ -35,6 +35,18 @@ Then hold ctrl+alt+d, speak, and let go. Settings live in
 `~/.config/dictaforge/config.toml`; every key is optional. A first-run wizard
 that does all of the above for you is the next milestone.
 
+Three ways to start an utterance, set with `mode`:
+
+```
+mode = "push_to_talk"   # hold the hotkey (default)
+mode = "toggle"         # tap to start, tap to stop
+mode = "hands_free"     # no hotkey, it stops when you stop talking
+```
+
+Hands-free keeps the microphone open and ends an utterance after
+`vad_silence_ms` of quiet (700 by default). It listens for loudness, not for
+speech, so a noisy room will trip it.
+
 Known limits today: KDE and GNOME type through uinput, which is what the input
 group is for. The large-v3-turbo model needs a GPU to be worth it; small is the
 sensible default on CPU.

@@ -54,24 +54,126 @@ pub fn normalize(samples: &mut [f32]) {
     }
 }
 
+use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, anyhow, bail};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
-pub struct Recorder;
+/// How much audio the ring keeps. Long enough to cover a whole utterance and
+/// short enough that idle RSS does not notice: 10 s of 48 kHz mono f32 is
+/// under 2 MB.
+const RING_SECONDS: u32 = 10;
 
-pub struct RecordingHandle {
-    stream: cpal::Stream,
-    buf: Arc<Mutex<Vec<f32>>>,
-    channels: usize,
+/// How far back `mark` reaches. Covers both the frames still in flight when a
+/// hotkey is pressed and the syllable the endpointer needed to hear before it
+/// could call it speech.
+const PREROLL_MS: u32 = 300;
+
+/// A position in the capture stream. Only meaningful to the `Tap` that made it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Mark(u64);
+
+/// Capped mono ring plus a monotonic count of everything ever written, which
+/// is what makes marks survive samples being dropped off the front.
+struct Ring {
+    samples: VecDeque<f32>,
+    written: u64,
+    cap: usize,
+}
+
+impl Ring {
+    fn new(cap: usize) -> Self {
+        Self {
+            samples: VecDeque::with_capacity(cap),
+            written: 0,
+            cap,
+        }
+    }
+
+    fn push(&mut self, samples: impl Iterator<Item = f32>) {
+        let before = self.samples.len();
+        self.samples.extend(samples);
+        self.written += (self.samples.len() - before) as u64;
+        if let Some(excess) = self.samples.len().checked_sub(self.cap) {
+            self.samples.drain(..excess);
+        }
+    }
+
+    /// Everything captured since `mark`, plus a mark for the new end. A mark
+    /// older than the ring is clamped to what is still there rather than
+    /// failing: dropped audio is better than no audio.
+    fn since(&self, mark: Mark) -> (Vec<f32>, Mark) {
+        let oldest = self.written - self.samples.len() as u64;
+        let start = mark.0.max(oldest) - oldest;
+        let out = self.samples.range(start as usize..).copied().collect();
+        (out, Mark(self.written))
+    }
+}
+
+/// Reader side of a capture stream: cloneable and thread-safe, unlike the
+/// cpal stream itself, so the hands-free watcher can share it with the
+/// daemon's pipeline.
+#[derive(Clone)]
+pub struct Tap {
+    ring: Arc<Mutex<Ring>>,
     rate: u32,
 }
 
-impl Recorder {
+impl Tap {
+    /// Device rate, not the 16 kHz whisper wants; `since` returns raw frames.
+    pub fn rate(&self) -> u32 {
+        self.rate
+    }
+
+    fn ring(&self) -> std::sync::MutexGuard<'_, Ring> {
+        // a panicking cpal callback must not take dictation down with it
+        self.ring.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// The exact write position, for callers that only want new audio.
+    pub fn now(&self) -> Mark {
+        Mark(self.ring().written)
+    }
+
+    /// The start of an utterance beginning now, which reaches slightly
+    /// backwards so the first syllable is not lost.
+    pub fn mark(&self) -> Mark {
+        let preroll = (self.rate * PREROLL_MS / 1000) as u64;
+        Mark(self.ring().written.saturating_sub(preroll))
+    }
+
+    /// Raw mono frames at the device rate since `mark`, and the new position.
+    pub fn since(&self, mark: Mark) -> (Vec<f32>, Mark) {
+        self.ring().since(mark)
+    }
+
+    /// The take since `mark`, ready for the STT engine: 16 kHz mono,
+    /// peak-normalized.
+    pub fn take_since(&self, mark: Mark) -> anyhow::Result<Vec<f32>> {
+        let (raw, _) = self.since(mark);
+        let mut pcm = to_mono_16k(&raw, 1, self.rate)?;
+        normalize(&mut pcm);
+        Ok(pcm)
+    }
+}
+
+/// A microphone held open for the daemon's lifetime. Audio is always
+/// flowing, so nothing has to warm up when the user starts talking.
+pub struct Stream {
+    // dropping this stops capture; nothing else touches it
+    _stream: cpal::Stream,
+    tap: Tap,
+}
+
+impl Stream {
+    pub fn tap(&self) -> Tap {
+        self.tap.clone()
+    }
+
     /// Open the named input device (default device when None) and start
     /// capturing in its native format.
-    pub fn start(device: Option<&str>) -> anyhow::Result<RecordingHandle> {
+    pub fn open(device: Option<&str>) -> anyhow::Result<Self> {
         let host = cpal::default_host();
         let device = match device {
             Some(name) => host
@@ -87,19 +189,17 @@ impl Recorder {
             .context("no input config; is the microphone busy or unplugged?")?;
         let channels = config.channels() as usize;
         let rate = config.sample_rate();
-        let buf = Arc::new(Mutex::new(Vec::new()));
+        let ring = Arc::new(Mutex::new(Ring::new((rate * RING_SECONDS) as usize)));
         let stream = match config.sample_format() {
-            cpal::SampleFormat::F32 => build_stream::<f32>(&device, config.into(), buf.clone()),
-            cpal::SampleFormat::I16 => build_stream::<i16>(&device, config.into(), buf.clone()),
-            cpal::SampleFormat::U16 => build_stream::<u16>(&device, config.into(), buf.clone()),
+            cpal::SampleFormat::F32 => build_stream::<f32>(&device, config.into(), &ring, channels),
+            cpal::SampleFormat::I16 => build_stream::<i16>(&device, config.into(), &ring, channels),
+            cpal::SampleFormat::U16 => build_stream::<u16>(&device, config.into(), &ring, channels),
             other => bail!("unsupported sample format {other:?}"),
         }?;
         stream.play()?;
-        Ok(RecordingHandle {
-            stream,
-            buf,
-            channels,
-            rate,
+        Ok(Stream {
+            _stream: stream,
+            tap: Tap { ring, rate },
         })
     }
 }
@@ -107,35 +207,30 @@ impl Recorder {
 fn build_stream<T>(
     device: &cpal::Device,
     config: cpal::StreamConfig,
-    buf: Arc<Mutex<Vec<f32>>>,
+    ring: &Arc<Mutex<Ring>>,
+    channels: usize,
 ) -> anyhow::Result<cpal::Stream>
 where
     T: cpal::SizedSample,
     f32: cpal::FromSample<T>,
 {
     use cpal::Sample;
+    let ring = ring.clone();
     Ok(device.build_input_stream(
         config,
         move |data: &[T], _: &cpal::InputCallbackInfo| {
-            let mut b = buf.lock().unwrap();
-            b.extend(data.iter().map(|s| f32::from_sample(*s)));
+            // mixed to mono here so the ring holds one stream of samples and
+            // marks mean the same thing whatever the device does
+            let mono = data.chunks_exact(channels).map(|frame| {
+                frame.iter().map(|s| f32::from_sample(*s)).sum::<f32>() / channels as f32
+            });
+            ring.lock().unwrap_or_else(|e| e.into_inner()).push(mono);
         },
-        // ponytail: capture errors just log; the daemon (Task 10) surfaces
-        // them as notifications
+        // ponytail: capture errors just log; the daemon surfaces the ones
+        // that matter as notifications when a take comes back empty
         |err| eprintln!("audio stream error: {err}"),
         None,
     )?)
-}
-
-impl RecordingHandle {
-    /// Stop capturing and return the take as 16 kHz mono f32.
-    /// (Plan said plain Vec<f32>; Result is more honest since the resampler
-    /// can fail, same deviation style as Task 3's EventSink.)
-    pub fn stop(self) -> anyhow::Result<Vec<f32>> {
-        drop(self.stream);
-        let raw = std::mem::take(&mut *self.buf.lock().unwrap());
-        to_mono_16k(&raw, self.channels, self.rate)
-    }
 }
 
 /// Names of the available input devices, for the mic-unavailable
@@ -228,6 +323,41 @@ mod tests {
         normalize(&mut samples);
         let peak = samples.iter().fold(0f32, |m, s| m.max(s.abs()));
         assert!((peak - PEAK_TARGET).abs() < 1e-3, "peak {peak}");
+    }
+
+    #[test]
+    fn ring_returns_exactly_what_arrived_since_the_mark() {
+        let mut ring = Ring::new(100);
+        ring.push([0.1f32; 10].into_iter());
+        let (_, mark) = ring.since(Mark(0));
+        ring.push([0.2f32; 25].into_iter());
+        let (out, next) = ring.since(mark);
+        assert_eq!(out.len(), 25);
+        assert!(out.iter().all(|s| *s == 0.2));
+        assert_eq!(next, Mark(35));
+        // asking again with the new mark yields nothing
+        assert!(ring.since(next).0.is_empty());
+    }
+
+    #[test]
+    fn ring_caps_instead_of_growing() {
+        let mut ring = Ring::new(100);
+        for _ in 0..50 {
+            ring.push([0.1f32; 10].into_iter());
+        }
+        assert_eq!(ring.samples.len(), 100);
+        assert_eq!(ring.written, 500);
+    }
+
+    /// A mark older than the ring must yield the surviving audio, not panic
+    /// and not an empty take.
+    #[test]
+    fn a_mark_that_fell_off_the_ring_is_clamped() {
+        let mut ring = Ring::new(100);
+        ring.push([0.1f32; 400].into_iter());
+        let (out, next) = ring.since(Mark(0));
+        assert_eq!(out.len(), 100);
+        assert_eq!(next, Mark(400));
     }
 
     #[test]
